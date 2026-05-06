@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Mentor.me — Design Tokens
+   Glassmorphism. Soft gradients. Frosted glass cards.
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core colors */
+  --background: #f5f0ff;
+  --foreground: #1a1a2e;
+
+  /* Brand palette */
+  --primary: #7c3aed;        /* vibrant purple */
+  --primary-light: #a78bfa;
+  --primary-dark: #5b21b6;
+  --secondary: #e040a0;      /* pink/magenta */
+  --secondary-light: #f472b6;
+  --accent: #f97316;         /* warm orange for highlights */
+  --accent-light: #fdba74;
+
+  /* Neutrals */
+  --muted: #f0ecf9;
+  --muted-foreground: #6b7280;
+  --border: rgba(255, 255, 255, 0.3);
+  --card: rgba(255, 255, 255, 0.55);
+  --card-foreground: #1a1a2e;
+
+  /* Glass effect */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px rgba(124, 58, 237, 0.08);
+
+  /* Status */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Glassmorphism card utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Gradient background */
+.bg-mesh {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(167, 139, 250, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 0%, rgba(244, 114, 182, 0.20) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(253, 186, 116, 0.15) 0%, transparent 50%),
+    var(--background);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient button */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+}
+
+/* Stat bar gradient */
+.stat-bar {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+  border-radius: 999px;
+  height: 6px;
 }
