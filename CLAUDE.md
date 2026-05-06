@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Mentor.me — Project Context
 
 ## What Is This?
@@ -135,3 +136,6 @@ mentor-me/
 ## EUDRES Context
 
 This platform is part of the E³UDRES² European University Alliance. It was conceived during Business Booster Week (hosted by TalentFunnel.eu at UCLL) and is intended to serve student entrepreneurs and mentors across the alliance's partner universities. After the initial build, selected students may continue the project during a 2-week exchange at IPS (Setúbal, Portugal) working in real rural startup ecosystems.
+=======
+@AGENTS.md
+>>>>>>> e46fa6f (Initial commit from Create Next App)
