@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import type { UserRole } from "@/types";
+import { runMatchingForStudent } from '@/lib/matching/matcher'
 
 const EXPERTISE_OPTIONS = [
   "Marketing",
@@ -125,6 +126,10 @@ export default function OnboardingPage() {
       setSaving(false);
       return;
     }
+    if (role === 'student') {
+      await runMatchingForStudent(user.id)
+    }
+        
 
     // Hard redirect to bypass middleware cache
     window.location.href = "/dashboard/matches";

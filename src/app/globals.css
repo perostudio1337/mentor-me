@@ -60,9 +60,49 @@
   --font-sans: var(--font-inter);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Scroll-reveal: soft bubble animation */
+.scroll-hidden {
+  opacity: 0;
+  transform: scale(0.6) translateY(40px);
+  filter: blur(8px);
+}
+
+.scroll-visible {
+  animation: bubble-in 0.9s var(--reveal-delay, 0ms) both;
+}
+
+@keyframes bubble-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(40px);
+    filter: blur(8px);
+  }
+  40% {
+    opacity: 0.8;
+    filter: blur(2px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-4px);
+    filter: blur(0);
+  }
+  82% {
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
 }
 
 /* Glassmorphism card utility */
@@ -105,9 +145,14 @@ body {
   box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
 }
 
-/* Stat bar gradient */
-.stat-bar {
-  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
-  border-radius: 999px;
-  height: 6px;
+/* Reduced motion: skip animations entirely */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hidden {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .scroll-visible {
+    animation: none;
+  }
 }

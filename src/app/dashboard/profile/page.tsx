@@ -2,12 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import Badge from "@/components/ui/badge";
 import type { Profile } from "@/types";
+
+interface SessionWithMatch {
+  id: string;
+  scheduled_at: string;
+  status: string;
+  meeting_link: string | null;
+  notes: string | null;
+  match: {
+    id: string;
+    mentor: { name: string };
+    student: { name: string };
+    mentor_id: string;
+    student_id: string;
+  };
+}
 
 const EXPERTISE_OPTIONS = [
   "Marketing",
@@ -41,6 +57,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [sessions, setSessions] = useState<SessionWithMatch[]>([]);
 
   // Editable fields
   const [name, setName] = useState("");
@@ -75,6 +92,33 @@ export default function ProfilePage() {
         setIdea(data.idea);
         setProblem(data.problem);
         setAvailability(data.availability);
+
+        // Fetch sessions for this profile's accepted matches
+        const { data: matchData } = await supabase
+          .from("matches")
+          .select("id")
+          .or(`mentor_id.eq.${data.id},student_id.eq.${data.id}`)
+          .eq("status", "accepted");
+
+        if (matchData && matchData.length > 0) {
+          const matchIds = matchData.map((m: { id: string }) => m.id);
+          const { data: sessionData } = await supabase
+            .from("sessions")
+            .select(`
+              id, scheduled_at, status, meeting_link, notes,
+              match:matches!sessions_match_id_fkey (
+                id, mentor_id, student_id,
+                mentor:profiles!matches_mentor_id_fkey (name),
+                student:profiles!matches_student_id_fkey (name)
+              )
+            `)
+            .in("match_id", matchIds)
+            .gte("scheduled_at", new Date().toISOString())
+            .order("scheduled_at", { ascending: true })
+            .limit(5);
+
+          if (sessionData) setSessions(sessionData as SessionWithMatch[]);
+        }
       }
 
       setLoading(false);
@@ -151,9 +195,14 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold">{name || "Your Name"}</h1>
         <div className="flex items-center justify-center gap-2 mt-2">
           <Badge variant={profile.role === "mentor" ? "default" : "success"}>
-            {profile.role === "mentor" ? "🎓 Mentor" : "🚀 Student"}
-          </Badge>
-          <Badge>{availability}</Badge>
+  {profile.role === "mentor" ? "🎓 Mentor" : "🚀 Student"}
+</Badge>
+<Badge>{availability}</Badge>
+{profile.role === "student" && (
+  <a href="/profile/journey">
+    <Badge variant="default">🗺️ View Journey</Badge>
+  </a>
+)}
         </div>
         <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto">
           {bio || "No bio yet"}
@@ -327,6 +376,84 @@ export default function ProfilePage() {
           {success}
         </div>
       )}
+
+      {/* My Sessions */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">📆 My Sessions</h2>
+          <Link href="/dashboard/calendar">
+            <Button variant="ghost" size="sm">Full calendar →</Button>
+          </Link>
+        </div>
+
+        {sessions.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-muted-foreground mb-3">No upcoming sessions.</p>
+            <Link href="/dashboard/calendar">
+              <Button variant="gradient" size="sm">Book a session</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session) => {
+              const isMentor = profile?.id === session.match?.mentor_id;
+              const partner = isMentor
+                ? session.match?.student?.name
+                : session.match?.mentor?.name;
+              const label = isMentor ? "Student" : "Mentor";
+              const statusColors: Record<string, string> = {
+                pending: "bg-amber-100 text-amber-700",
+                confirmed: "bg-green-100 text-green-700",
+                cancelled: "bg-red-100 text-red-700",
+                completed: "bg-gray-100 text-gray-500",
+              };
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between rounded-xl glass px-4 py-3 gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      Session with {partner}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {label} · {new Date(session.scheduled_at).toLocaleString("en-GB", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                    {session.meeting_link && (
+                      <a
+                        href={session.meeting_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline truncate block"
+                      >
+                        Join meeting →
+                      </a>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${statusColors[session.status] ?? "bg-gray-100 text-gray-500"}`}
+                  >
+                    {session.status}
+                  </span>
+                </div>
+              );
+            })}
+            <div className="pt-1">
+              <Link href="/dashboard/calendar">
+                <Button variant="ghost" size="sm" className="w-full">
+                  Book a new session
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Danger Zone */}
       <Card className="p-6">

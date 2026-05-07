@@ -39,6 +39,7 @@ create policy "Message participants can send"
         and p.id = messages.sender_id
         and messages.receiver_id in (m.mentor_id, m.student_id)
         and p.id in (m.mentor_id, m.student_id)
+        and messages.receiver_id != messages.sender_id
     )
   );
 
@@ -53,6 +54,7 @@ create policy "Receiver can mark read"
       where m.id = messages.match_id
         and p.id = messages.receiver_id
         and p.id in (m.mentor_id, m.student_id)
+        
     )
   );
 

@@ -2,13 +2,7 @@ import Link from "next/link";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import LandingNav from "@/components/ui/landing-nav";
-
-const stats = [
-  { value: "5k+", label: "Active Mentees", width: "85%" },
-  { value: "12k+", label: "Successful Mentors", width: "92%" },
-  { value: "45+", label: "Industry Sectors", width: "70%" },
-  { value: "98%", label: "Match Satisfaction", width: "98%" },
-];
+import ScrollReveal from "@/components/ui/scroll-reveal";
 
 const features = [
   {
@@ -24,16 +18,28 @@ const features = [
       "Message your mentor instantly in a safe, moderated environment. Get advice when you need it most.",
   },
   {
-    icon: "📅",
-    title: "Easy Scheduling",
+    icon: "🌍",
+    title: "Event Discovery",
     description:
-      "Shared calendar with your mentor. Pick a time, book a session — no back-and-forth needed.",
+      "Submit your own events or browse upcoming ones nearby — workshops, pitch nights, meetups, all in one place.",
   },
   {
-    icon: "🌍",
-    title: "Networking Events",
+    icon: "📈",
+    title: "Startup Progress Tracker",
     description:
-      "Discover verified events across Europe. Grow your network beyond your mentor relationship.",
+      "Track your journey from idea to launch. Log milestones, see how far you've come, and show mentors your growth.",
+  },
+  {
+    icon: "🏆",
+    title: "Weekly Challenges",
+    description:
+      "Not sure where to start? Take bite-sized challenges like \"write your elevator pitch\" or \"interview 3 customers\" to build momentum.",
+  },
+  {
+    icon: "🤝",
+    title: "Community Feed",
+    description:
+      "Share your progress, cheer others on, and get encouragement from the community. You're not building alone.",
   },
 ];
 
@@ -62,9 +68,9 @@ export default function HomePage() {
             Part of the E³UDRES² Alliance
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
-            Shape the future
+            Find the person who
             <br />
-            <span className="text-gradient">together</span>
+            <span className="text-gradient">gets your problem</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
             Discover a network of inspiring professionals and ambitious talents.
@@ -73,14 +79,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/register">
               <Button variant="gradient" size="lg">
-                Find Your Mentor
+                Get Started
               </Button>
             </Link>
-            <Link href="/register">
+            <a href="#features">
               <Button variant="outline" size="lg">
-                Become a Mentor
+                See How It Works
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -89,107 +95,100 @@ export default function HomePage() {
       <section className="max-w-6xl mx-auto px-6 py-20">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Become a Mentor */}
-          <Card hover className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-              <span className="text-3xl">🎓</span>
-            </div>
-            <h3 className="text-2xl font-bold mb-3">Become a Mentor</h3>
-            <p className="text-muted-foreground mb-6">
-              Share your expertise, inspire the next generation and broaden your
-              own leadership skills along the way.
-            </p>
-            <Link href="/register">
-              <Button variant="gradient">Start as Mentor</Button>
-            </Link>
-          </Card>
+          <ScrollReveal delay={0}>
+            <Card hover className="text-center h-full">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                <span className="text-3xl">🎓</span>
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Become a Mentor</h3>
+              <p className="text-muted-foreground mb-4">
+                Share your expertise, inspire the next generation and broaden your
+                own leadership skills along the way.
+              </p>
+              <Link
+                href="/register"
+                className="text-sm font-medium text-primary hover:underline transition-colors"
+              >
+                Sign up as mentor →
+              </Link>
+            </Card>
+          </ScrollReveal>
 
           {/* Find a Mentor */}
-          <Card hover className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-5">
-              <span className="text-3xl">🔍</span>
-            </div>
-            <h3 className="text-2xl font-bold mb-3">Find a Mentor</h3>
-            <p className="text-muted-foreground mb-6">
-              Get personalised guidance from proven professionals in your field.
-              Turn your idea into a real plan.
-            </p>
-            <Link href="/register">
-              <Button variant="gradient">Find Your Match</Button>
-            </Link>
-          </Card>
+          <ScrollReveal delay={120}>
+            <Card hover className="text-center h-full">
+              <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-5">
+                <span className="text-3xl">🔍</span>
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Find a Mentor</h3>
+              <p className="text-muted-foreground mb-4">
+                Get personalised guidance from proven professionals in your field.
+                Turn your idea into a real plan.
+              </p>
+              <Link
+                href="/register"
+                className="text-sm font-medium text-secondary hover:underline transition-colors"
+              >
+                Sign up as mentee →
+              </Link>
+            </Card>
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* Impact Stats */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <Card className="p-8 md:p-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-8">
-            Our Impact
-          </p>
-          <div className="space-y-6">
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-2xl md:text-3xl font-bold text-gradient">
-                    {stat.value}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {stat.label}
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
-                  <div className="stat-bar" style={{ width: stat.width }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
-
       {/* Features */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-bold text-center mb-4">
-          Everything You Need
-        </h2>
-        <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">
-          Built for real mentoring relationships — not just a directory.
-        </p>
-        <div className="grid md:grid-cols-2 gap-6">
-          {features.map((feature) => (
-            <Card key={feature.title} hover>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">{feature.icon}</span>
+      <section id="features" className="max-w-6xl mx-auto px-6 py-20 scroll-mt-8">
+        <ScrollReveal>
+          <h2 className="text-3xl font-bold text-center mb-4">
+            Everything You Need
+          </h2>
+          <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">
+            Built for real mentoring relationships — not just a directory.
+          </p>
+        </ScrollReveal>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, i) => (
+            <ScrollReveal key={feature.title} delay={i * 100}>
+              <Card hover className="h-full">
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl">{feature.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </ScrollReveal>
           ))}
         </div>
       </section>
 
       {/* Popular Topics */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold mb-8">Popular Topics</h2>
+        <ScrollReveal>
+          <h2 className="text-3xl font-bold mb-8">Popular Topics</h2>
+        </ScrollReveal>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {topics.map((topic) => (
-            <Card key={topic.label} hover className="text-center py-8 cursor-pointer">
-              <div className="text-3xl mb-3">{topic.icon}</div>
-              <p className="font-semibold text-sm">{topic.label}</p>
-            </Card>
+          {topics.map((topic, i) => (
+            <ScrollReveal key={topic.label} delay={i * 80}>
+              <Card hover className="text-center py-8 cursor-pointer">
+                <div className="text-3xl mb-3">{topic.icon}</div>
+                <p className="font-semibold text-sm">{topic.label}</p>
+              </Card>
+            </ScrollReveal>
           ))}
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="max-w-6xl mx-auto px-6 py-20 text-center">
+        <ScrollReveal>
         <div className="relative overflow-hidden rounded-3xl p-12 md:p-16">
           {/* Gradient background */}
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-90 rounded-3xl" />
@@ -206,15 +205,16 @@ export default function HomePage() {
             </p>
             <Link href="/register">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="lg"
-                className="border-white text-white hover:bg-white hover:text-primary"
+                className="border-2 border-white text-white hover:bg-white/20 hover:text-white"
               >
-                Join Mentor.me — It&apos;s Free
+                Create Your Free Account
               </Button>
             </Link>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       {/* Footer */}

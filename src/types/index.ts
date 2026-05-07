@@ -56,17 +56,59 @@ export type Message = {
 
 export type EventStatus = "pending" | "approved" | "rejected";
 
+export type EventCategory =
+  | "pitch-night"
+  | "workshop"
+  | "hackathon"
+  | "networking"
+  | "bootcamp"
+  | "meetup"
+  | "conference"
+  | "lecture"
+  | "career-fair"
+  | "webinar"
+  | "office-hours"
+  | "other";
+
+export const EVENT_CATEGORIES: { value: EventCategory; label: string }[] = [
+  { value: "pitch-night", label: "Pitch Night" },
+  { value: "workshop", label: "Workshop" },
+  { value: "hackathon", label: "Hackathon" },
+  { value: "networking", label: "Networking" },
+  { value: "bootcamp", label: "Bootcamp" },
+  { value: "meetup", label: "Meetup" },
+  { value: "conference", label: "Conference" },
+  { value: "lecture", label: "Lecture" },
+  { value: "career-fair", label: "Career Fair" },
+  { value: "webinar", label: "Webinar" },
+  { value: "office-hours", label: "Office Hours" },
+  { value: "other", label: "Other" },
+];
+
 export type MentorEvent = {
   id: string;
   creator_id: string;
   title: string;
   description: string;
+  category: EventCategory;
   date: string;
+  end_date: string | null;
   location: string;
+  link: string;
   status: EventStatus;
   created_at: string;
+  updated_at: string;
   // Joined data
   creator?: Profile;
+  rsvp_count?: number;
+  user_has_rsvpd?: boolean;
+};
+
+export type EventRsvp = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  created_at: string;
 };
 
 // --- Session / Scheduling Types ---
