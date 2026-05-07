@@ -78,15 +78,15 @@ export function rankMentorsForProblem(
   request: ProblemRequest,
   limit = 5,
 ): ProblemMatchCandidate[] {
-  const selectedIds = new Set(request.selectedCategoryIds)
+  const selectedIds = new Set(request.selectedCategoryIds.map(Number))
   const catNameById = new Map(PROBLEM_CATEGORIES.map((c) => [c.id, c.name] as const))
 
   return mentors
     .filter((m) => m.available)
     .map((mentor) => {
-      // 1. Category overlap
-      const mentorCatIds = new Set(mentor.expertise.map((e) => e.category_id).filter(Boolean))
-      const overlapping = [...selectedIds].filter((id) => mentorCatIds.has(id))
+      // 1. Category overlap — force both sides to numbers to avoid "4" !== 4
+      const mentorCatIds = new Set(mentor.expertise.map((e) => Number(e.category_id)).filter(Boolean))
+      const overlapping = [...selectedIds].filter((id) => mentorCatIds.has(Number(id)))
       const catRatio = selectedIds.size > 0 ? overlapping.length / selectedIds.size : 0
       const catPoints = Math.round(catRatio * W.categoryOverlap)
 
@@ -105,7 +105,7 @@ export function rankMentorsForProblem(
       const score = Math.min(catPoints + kwPoints + basePoints, 100)
 
       const matchedNames = overlapping
-        .map((id) => catNameById.get(id))
+        .map((id) => catNameById.get(id as ProblemCategoryId))
         .filter(Boolean) as ProblemCategoryName[]
 
       const matchReason = buildReason(matchedNames)

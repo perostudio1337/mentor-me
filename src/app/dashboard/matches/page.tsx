@@ -198,12 +198,14 @@ export default async function MatchesPage() {
                 </div>
 
                 <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
-                  {match.score > 0 && (
+                  
                     <div>
-                      <div className="text-lg font-bold text-gradient">{match.score}%</div>
-                      <p className="text-xs text-muted-foreground">match</p>
+                      <div className="text-lg font-bold text-gradient">
+                          {match.score > 0 ? `${match.score}%` : "New"}
+                      </div>
+                     <p className="text-xs text-muted-foreground">match</p>
                     </div>
-                  )}
+                  
                   {/* Pending: mentor sees Accept/Decline, student sees "Waiting" */}
                   {match.status === "pending" && (
                     iAmMentor ? (
@@ -214,7 +216,7 @@ export default async function MatchesPage() {
                   )}
                   {match.status === "accepted" && (
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <Link href={`/dashboard/chat/${match.id}`}>
+                      <Link href={`/dashboard/chat?match=${match.id}`}>
                         <Button variant="gradient" size="sm">Chat →</Button>
                       </Link>
                       <Link href={`/dashboard/matches/${match.id}/profile`}>
