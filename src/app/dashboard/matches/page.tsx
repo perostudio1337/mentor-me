@@ -1,12 +1,6 @@
 // ============================================================
 // MENTOR ME — Matches Page  (updated)
 // src/app/dashboard/matches/page.tsx
-//
-// Wijzigingen t.o.v. origineel:
-//  1. Import getAvailableMentors + RequestMentorButton
-//  2. Laad mentors server-side
-//  3. Voeg "Request a mentor" knop toe naast de header
-//  Alle bestaande logica is ONGEWIJZIGD.
 // ============================================================
 
 import { createClient } from "@/lib/supabase/server";
@@ -15,10 +9,10 @@ import Badge from "@/components/ui/badge";
 import Button from "@/components/ui/button";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-// ★ NEW imports
 import { getAvailableMentors } from "@/lib/matching/matcher-server";
 import RequestMentorButton from "@/components/discovery/request-mentor-button";
 import { AcceptDeclineButtons } from "@/components/matches/accept-decline-buttons";
+import type { Challenge, ChallengeEnrollment } from "@/types/challenges";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +32,7 @@ export default async function MatchesPage() {
   const isStudent = profile?.role === "student";
   const profileId = profile?.id ?? null;
 
-  // Fetch next 3 upcoming approved events (unchanged)
+  // Fetch next 3 upcoming approved events
   const { data: upcomingEvents } = await supabase
     .from("events")
     .select("id, title, category, date, location")
@@ -47,7 +41,7 @@ export default async function MatchesPage() {
     .order("date", { ascending: true })
     .limit(3);
 
-  // Fetch matches (unchanged)
+  // Fetch matches
   const { data: matches } = profileId
     ? await supabase
         .from("matches")
@@ -66,15 +60,31 @@ export default async function MatchesPage() {
         .order("score", { ascending: false })
     : { data: [] };
 
-  // ★ NEW: load mentors for the Request Modal (only for students)
+  // Load mentors for the Request Modal (only for students)
   const availableMentors = isStudent ? await getAvailableMentors() : [];
+
+  // ── NEW: Fetch first 4 challenges + student's enrolments ──
+  const { data: challenges } = await supabase
+    .from("challenges")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .limit(4);
+
+  let enrollments: ChallengeEnrollment[] = [];
+  if (isStudent && profileId) {
+    const { data: eData } = await supabase
+      .from("challenge_enrollments")
+      .select("*")
+      .eq("profile_id", profileId);
+    enrollments = eData ?? [];
+  }
 
   const pendingMatches = matches?.filter((m) => m.status === "pending") || [];
   const acceptedMatches = matches?.filter((m) => m.status === "accepted") || [];
 
   return (
     <div>
-      {/* Welcome header — ★ UPDATED: added Request a Mentor button */}
+      {/* Welcome header */}
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold mb-1">
@@ -86,8 +96,6 @@ export default async function MatchesPage() {
               : "Here are students looking for your expertise."}
           </p>
         </div>
-
-        {/* ★ NEW: Only show for students */}
         {isStudent && (
           <RequestMentorButton
             mentors={availableMentors}
@@ -100,7 +108,7 @@ export default async function MatchesPage() {
         )}
       </div>
 
-      {/* Quick stats (unchanged) */}
+      {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-gradient">{pendingMatches.length}</p>
@@ -120,7 +128,7 @@ export default async function MatchesPage() {
         </Card>
       </div>
 
-      {/* Matches list (unchanged) */}
+      {/* Matches list */}
       {matches && matches.length > 0 ? (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">
@@ -179,7 +187,6 @@ export default async function MatchesPage() {
                     </p>
                   )}
 
-                  {/* Reasoning — shown to both sides */}
                   {match.reasoning && (
                     <p className="text-xs text-primary mt-1.5 italic truncate">
                       💬 {match.reasoning}
@@ -198,20 +205,20 @@ export default async function MatchesPage() {
                 </div>
 
                 <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
-                  
-                    <div>
-                      <div className="text-lg font-bold text-gradient">
-                          {match.score > 0 ? `${match.score}%` : "New"}
-                      </div>
-                     <p className="text-xs text-muted-foreground">match</p>
+                  <div>
+                    <div className="text-lg font-bold text-gradient">
+                      {match.score > 0 ? `${match.score}%` : "New"}
                     </div>
-                  
-                  {/* Pending: mentor sees Accept/Decline, student sees "Waiting" */}
+                    <p className="text-xs text-muted-foreground">match</p>
+                  </div>
+
                   {match.status === "pending" && (
                     iAmMentor ? (
                       <AcceptDeclineButtons matchId={match.id} />
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">Waiting for response…</span>
+                      <span className="text-xs text-muted-foreground italic">
+                        Waiting for response…
+                      </span>
                     )
                   )}
                   {match.status === "accepted" && (
@@ -242,19 +249,125 @@ export default async function MatchesPage() {
               : "Make sure your profile is complete so students can find you."}
           </p>
           {isStudent && (
-          <RequestMentorButton
-            mentors={availableMentors}
-            existingMatches={(matches || []).map((m) => ({
-              mentor_id: m.mentor_id,
-              match_id: m.id,
-              status: m.status,
-            }))}
-          />
-        )}
+            <RequestMentorButton
+              mentors={availableMentors}
+              existingMatches={(matches || []).map((m) => ({
+                mentor_id: m.mentor_id,
+                match_id: m.id,
+                status: m.status,
+              }))}
+            />
+          )}
         </Card>
       )}
 
-      {/* Upcoming events (unchanged) */}
+      {/* ── NEW: Challenges sectie ── */}
+      {challenges && challenges.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Challenges 🏆</h2>
+              <p className="text-muted-foreground text-sm mt-0.5">
+                Bite-sized courses to level up your startup knowledge.
+              </p>
+            </div>
+            <Link href="/dashboard/challenges">
+              <Button variant="ghost" size="sm">See all →</Button>
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(challenges as Challenge[]).map((challenge) => {
+              const enrollment = enrollments.find(
+                (e) => e.challenge_id === challenge.id
+              );
+              const pct = enrollment
+                ? Math.round((enrollment.steps_done / challenge.total_steps) * 100)
+                : 0;
+              const isCompleted = !!enrollment?.completed_at;
+              const isEnrolled = !!enrollment;
+
+              return (
+                <Card key={challenge.id} hover className="p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <span className="text-2xl leading-none mt-0.5">{challenge.icon}</span>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-sm leading-snug">
+                          {challenge.title}
+                        </h3>
+                        {isCompleted && (
+                          <Badge variant="success" className="shrink-0">✓ Done</Badge>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {challenge.description}
+                      </p>
+
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          {challenge.duration_label}
+                        </span>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className="text-xs text-muted-foreground capitalize">
+                          {challenge.difficulty}
+                        </span>
+                      </div>
+
+                      {/* Progress bar (only when enrolled) */}
+                      {isEnrolled && !isCompleted && (
+                        <div className="mt-2">
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs text-muted-foreground">
+                              {enrollment!.steps_done}/{challenge.total_steps} steps
+                            </span>
+                            <span
+                              className="text-xs font-semibold"
+                              style={{ color: "var(--success)" }}
+                            >
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-1.5 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${pct}%`,
+                                background: "linear-gradient(90deg, #10b981, #34d399)",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CTA */}
+                      {isStudent && (
+                        <div className="mt-3">
+                          <Link href="/dashboard/challenges">
+                            <Button variant={isEnrolled ? "outline" : "gradient"} size="sm">
+                              {isCompleted
+                                ? "View"
+                                : isEnrolled
+                                ? "Continue →"
+                                : "Start Challenge"}
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming events */}
       {upcomingEvents && upcomingEvents.length > 0 && (
         <div className="mt-10">
           <div className="flex items-center justify-between mb-4">
@@ -267,9 +380,13 @@ export default async function MatchesPage() {
             {upcomingEvents.map((event) => (
               <Card key={event.id} hover className="flex items-center gap-4 p-4">
                 <div className="text-2xl">
-                  {event.category === "workshop" ? "🛠️" :
-                   event.category === "networking" ? "🤝" :
-                   event.category === "hackathon" ? "💻" : "📅"}
+                  {event.category === "workshop"
+                    ? "🛠️"
+                    : event.category === "networking"
+                    ? "🤝"
+                    : event.category === "hackathon"
+                    ? "💻"
+                    : "📅"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{event.title}</p>

@@ -1,188 +1,136 @@
-import Link from "next/link";
-import Card from "@/components/ui/card";
-import Badge from "@/components/ui/badge";
-import Button from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils";
-import BookSessionForm from "./book-session-form";
+'use client'
 
-export const dynamic = "force-dynamic";
+/**
+ * src/app/dashboard/matches/[matchId]/profile/page.tsx  — NEW (Step 5.6)
+ *
+ * Mentor view of a matched startup's profile.
+ * Mirrors the pattern from matches/[matchId]/page.tsx but adds:
+ *   • Full profile details
+ *   • Challenge Progress section via <ChallengeProgressCard isMentorView>
+ *
+ * Route: /dashboard/matches/[matchId]/profile
+ * (The existing /dashboard/matches/[matchId] page shows the journey/milestones.)
+ */
 
-type Props = {
-  params: Promise<{ matchId: string }>;
-  searchParams: Promise<{ problem?: string }>;
-};
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useParams } from 'next/navigation'
+import Card from '@/components/ui/card'
+import Badge from '@/components/ui/badge'
+import ChallengeProgressCard from '@/components/challenges/challenge-progress-card'
+import type { ChallengeEnrollment, Challenge } from '@/types/challenges'
 
-export default async function MatchProfilePage({ params, searchParams }: Props) {
-  const { matchId } = await params;
-  const { problem = "" } = await searchParams;
-  const supabase = await createClient();
+type EnrollmentWithChallenge = ChallengeEnrollment & { challenge: Challenge }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return <div className="p-6">Please log in.</div>;
+type StartupProfile = {
+  id: string
+  name: string
+  bio: string
+  idea: string
+  problem: string
+  expertise: string[]
+  availability: string
+}
 
-  const { data: myProfile } = await supabase
-    .from("profiles")
-    .select("id, role")
-    .eq("user_id", user.id)
-    .single();
+export default function MenteeProfilePage() {
+  const { matchId } = useParams()
+  const supabase = createClient()
 
-  const { data: matchRaw } = await supabase
-    .from("matches")
-    .select(`
-      id, status, score, reasoning, mentor_id, student_id, created_at,
-      mentor:profiles!matches_mentor_id_fkey(id, name, avatar_url, bio, expertise, availability, email),
-      student:profiles!matches_student_id_fkey(id, name, avatar_url, bio, idea, problem, availability, email)
-    `)
-    .eq("id", matchId)
-    .single();
+  const [profile, setProfile] = useState<StartupProfile | null>(null)
+  const [enrollments, setEnrollments] = useState<EnrollmentWithChallenge[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (!matchRaw) return <div className="p-6">Match not found.</div>;
+  useEffect(() => {
+    const fetchData = async () => {
+      // Get student_id from the match
+      const { data: match } = await supabase
+        .from('matches')
+        .select('student_id')
+        .eq('id', matchId)
+        .single()
 
-  // Cast to any to avoid Supabase join typing issues
-  const match = matchRaw as any;
+      if (!match) return
 
-  const iAmMentor = match.mentor?.id === myProfile?.id;
-  const other = iAmMentor ? match.student : match.mentor;
-  const otherRole = iAmMentor ? "Student" : "Mentor";
+      // Fetch startup profile
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('id, name, bio, idea, problem, expertise, availability')
+        .eq('id', match.student_id)
+        .single()
 
-  const { data: sessions } = await supabase
-    .from("sessions")
-    .select("*")
-    .eq("match_id", match.id)
-    .order("scheduled_at", { ascending: true });
+      if (!p) return
+      setProfile(p)
 
-  const upcomingSessions = sessions?.filter(
-    (s) => s.status !== "cancelled" && new Date(s.scheduled_at) > new Date()
-  ) || [];
+      // Fetch challenge enrolments joined with challenge details
+      const { data: eData } = await supabase
+        .from('challenge_enrollments')
+        .select('*, challenge:challenges(*)')
+        .eq('profile_id', p.id)
+        .order('enrolled_at', { ascending: true })
 
-  const pastSessions = sessions?.filter(
-    (s) => s.status !== "cancelled" && new Date(s.scheduled_at) <= new Date()
-  ) || [];
+      if (eData) setEnrollments(eData as EnrollmentWithChallenge[])
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [matchId])
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>
+  if (!profile) return null
+
+  const initials = profile.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Link href="/dashboard/matches" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-        ← Back to matches
-      </Link>
+    <div className="max-w-2xl mx-auto space-y-6 p-6" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
 
-      {/* Profile header */}
+      {/* ── Profile header ── */}
       <Card className="text-center p-8">
-        <div className="w-20 h-20 rounded-full bg-primary-light text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4">
-          {other?.name
-            ? other.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-            : "?"}
+        <div className="w-16 h-16 rounded-full bg-primary-light text-white text-xl font-bold flex items-center justify-center mx-auto mb-3">
+          {initials}
         </div>
-        <h1 className="text-2xl font-bold">{other?.name || "Unknown"}</h1>
-        <div className="flex items-center justify-center gap-2 mt-2">
-          <Badge>{otherRole}</Badge>
-          {match.status === "accepted" && <Badge variant="success">Connected</Badge>}
+        <h1 className="text-2xl font-bold">{profile.name}</h1>
+        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+          <Badge variant="success">🚀 Startup</Badge>
+          <Badge>{profile.availability}</Badge>
         </div>
-        <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto">
-          {other?.bio || "No bio yet"}
-        </p>
-        {other?.availability && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Availability: {other.availability}
-          </p>
-        )}
-        {match.status === "accepted" && (
-          <div className="flex items-center justify-center gap-3 mt-5">
-            <Link href={`/dashboard/chat?match=${match.id}`}>
-              <Button variant="gradient">Open Chat</Button>
-            </Link>
-          </div>
+        {profile.bio && (
+          <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto">{profile.bio}</p>
         )}
       </Card>
 
-      {/* Details */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-3">About</h2>
-        {other?.expertise && Array.isArray(other.expertise) && other.expertise.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Expertise</p>
-            <div className="flex flex-wrap gap-2">
-              {other.expertise.map((e: string) => <Badge key={e}>{e}</Badge>)}
+      {/* ── Startup details ── */}
+      {(profile.idea || profile.problem) && (
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Their Startup</h2>
+          {profile.idea && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Idea / Project
+              </p>
+              <p className="text-sm">{profile.idea}</p>
             </div>
-          </div>
-        )}
-        {other?.idea && (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Project / Idea</p>
-            <p className="text-sm">{other.idea}</p>
-          </div>
-        )}
-        {other?.problem && (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Problem</p>
-            <p className="text-sm">{other.problem}</p>
-          </div>
-        )}
-        {match.reasoning && (
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Match Reasoning</p>
-            <p className="text-sm text-muted-foreground italic">{match.reasoning}</p>
-          </div>
-        )}
-      </Card>
-
-      {/* Schedule a Session — only for accepted matches */}
-      {match.status === "accepted" && (
-        <Card>
-          <h2 className="text-lg font-semibold mb-4">Schedule a Session</h2>
-          <BookSessionForm
-            matchId={match.id}
-            otherName={other?.name || "your match"}
-            prefillNotes={problem}
-          />
+          )}
+          {profile.problem && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Problem they face
+              </p>
+              <p className="text-sm">{profile.problem}</p>
+            </div>
+          )}
         </Card>
       )}
 
-      {/* Upcoming sessions */}
-      {upcomingSessions.length > 0 && (
-        <Card>
-          <h2 className="text-lg font-semibold mb-3">Upcoming Sessions</h2>
-          <div className="space-y-3">
-            {upcomingSessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between p-3 rounded-xl glass">
-                <div>
-                  <p className="text-sm font-medium">📅 {formatDate(session.scheduled_at)}</p>
-                  {session.notes && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{session.notes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={session.status === "confirmed" ? "success" : "default"}>
-                    {session.status}
-                  </Badge>
-                  {session.meeting_link && (
-                    <a href={session.meeting_link} target="_blank" rel="noopener noreferrer">
-                      <Button variant="gradient" size="sm">Join</Button>
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Past sessions */}
-      {pastSessions.length > 0 && (
-        <Card>
-          <h2 className="text-lg font-semibold mb-3">Past Sessions</h2>
-          <div className="space-y-2">
-            {pastSessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between p-3 rounded-xl glass opacity-70">
-                <p className="text-sm">📅 {formatDate(session.scheduled_at)}</p>
-                <Badge variant={session.status === "completed" ? "success" : "default"}>
-                  {session.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      {/* ── Challenge Progress — mentor view ── */}
+      <ChallengeProgressCard
+        enrollments={enrollments}
+        isMentorView={true}
+      />
     </div>
-  );
+  )
 }

@@ -1,7 +1,19 @@
 'use client'
 
+/**
+ * src/app/dashboard/profile/journey/page.tsx  — UPDATED (Step 5.6)
+ *
+ * Changes from original:
+ * • Imports + renders <ChallengeProgressCard> replacing the static placeholder.
+ * • Fetches challenge_enrollments joined with challenges for the current student.
+ * • Everything else (milestones timeline) is untouched.
+ */
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import ChallengeProgressCard from '@/components/challenges/challenge-progress-card'
+import type { ChallengeEnrollment } from '@/types/challenges'
+import type { Challenge } from '@/types/challenges'
 
 type Milestone = {
   id: string
@@ -21,13 +33,16 @@ const stageLabels: Record<string, string> = {
   other: '⭐ Other',
 }
 
+type EnrollmentWithChallenge = ChallengeEnrollment & { challenge: Challenge }
+
 export default function JourneyPage() {
   const supabase = createClient()
   const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [enrollments, setEnrollments] = useState<EnrollmentWithChallenge[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchMilestones = async () => {
+    const fetchData = async () => {
       const { data: user } = await supabase.auth.getUser()
       if (!user.user) return
 
@@ -39,17 +54,28 @@ export default function JourneyPage() {
 
       if (!profile) return
 
-      const { data, error } = await supabase
+      // Milestones (unchanged)
+      const { data: mData, error: mError } = await supabase
         .from('startup_milestones')
         .select('*')
         .eq('profile_id', profile.id)
         .order('created_at', { ascending: true })
 
-      if (!error && data) setMilestones(data)
+      if (!mError && mData) setMilestones(mData)
+
+      // Challenge enrolments — join with challenges table
+      const { data: eData } = await supabase
+        .from('challenge_enrollments')
+        .select('*, challenge:challenges(*)')
+        .eq('profile_id', profile.id)
+        .order('enrolled_at', { ascending: true })
+
+      if (eData) setEnrollments(eData as EnrollmentWithChallenge[])
+
       setLoading(false)
     }
 
-    fetchMilestones()
+    fetchData()
   }, [])
 
   if (loading) return <div className="p-8 text-center">Laden...</div>
@@ -59,17 +85,19 @@ export default function JourneyPage() {
       <h1 className="text-3xl font-bold mb-2">My Startup Journey</h1>
       <p className="text-gray-500 mb-8">Track your progress as a founder.</p>
 
+      {/* ── Milestones timeline (unchanged) ── */}
       {milestones.length === 0 ? (
         <div className="text-center p-12 bg-white rounded-2xl shadow">
           <div className="text-5xl mb-4">🗺️</div>
           <h2 className="text-xl font-semibold mb-2">No milestones yet</h2>
-          <p className="text-gray-400 text-sm">Add your first milestone to start tracking your journey.</p>
+          <p className="text-gray-400 text-sm">
+            Add your first milestone to start tracking your journey.
+          </p>
         </div>
       ) : (
         <div className="relative">
           {/* Progress line */}
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-blue-100" />
-
           <div className="space-y-6">
             {milestones.map((milestone) => (
               <div key={milestone.id} className="relative flex gap-4">
@@ -95,17 +123,14 @@ export default function JourneyPage() {
           </div>
         </div>
       )}
-      {/* Step 5.6 — Challenges Placeholder */}
-<div className="mt-10">
-  <h2 className="text-xl font-bold mb-4">Completed Challenges</h2>
-  <div className="text-center p-12 bg-white rounded-2xl shadow">
-    <div className="text-5xl mb-4">🏆</div>
-    <h3 className="text-lg font-semibold mb-2">No challenges yet</h3>
-    <p className="text-gray-400 text-sm">
-      Completed challenges will appear here automatically.
-    </p>
-  </div>
-</div>
+
+      {/* ── Step 5.6 — Challenge Progress (replaces placeholder) ── */}
+      <div className="mt-10">
+        <ChallengeProgressCard
+          enrollments={enrollments}
+          isMentorView={false}
+        />
+      </div>
     </div>
   )
 }
