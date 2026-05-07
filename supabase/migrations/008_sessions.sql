@@ -15,12 +15,14 @@ CREATE TABLE sessions (
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can view sessions for their matches
+-- NOTE: mentor_id/student_id reference profiles.id, NOT auth.uid()
 CREATE POLICY "Users can view sessions for their matches" ON sessions
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM matches m
+            JOIN profiles p ON p.id IN (m.mentor_id, m.student_id)
             WHERE m.id = sessions.match_id
-            AND (m.mentor_id = auth.uid() OR m.student_id = auth.uid())
+            AND p.user_id = auth.uid()
         )
     );
 
@@ -29,9 +31,10 @@ CREATE POLICY "Users can create sessions for accepted matches" ON sessions
     FOR INSERT WITH CHECK (
         EXISTS (
             SELECT 1 FROM matches m
+            JOIN profiles p ON p.id IN (m.mentor_id, m.student_id)
             WHERE m.id = sessions.match_id
             AND m.status = 'accepted'
-            AND (m.mentor_id = auth.uid() OR m.student_id = auth.uid())
+            AND p.user_id = auth.uid()
         )
     );
 
@@ -40,8 +43,9 @@ CREATE POLICY "Users can update their sessions" ON sessions
     FOR UPDATE USING (
         EXISTS (
             SELECT 1 FROM matches m
+            JOIN profiles p ON p.id IN (m.mentor_id, m.student_id)
             WHERE m.id = sessions.match_id
-            AND (m.mentor_id = auth.uid() OR m.student_id = auth.uid())
+            AND p.user_id = auth.uid()
         )
     );
 

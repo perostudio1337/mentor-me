@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import DashboardNav from "@/components/ui/dashboard-nav";
+import NotificationBell from "@/components/ui/notification-bell";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,7 @@ export default async function DashboardLayout({
             Mentor.me
           </Link>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.name || user?.email}
             </span>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { EVENT_CATEGORIES } from "@/types";
 import { formatDate } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 const categoryEmoji: Record<string, string> = {
   "pitch-night": "🎤",
   workshop: "🛠️",
@@ -21,11 +23,12 @@ const categoryEmoji: Record<string, string> = {
   other: "📌",
 };
 
-
 export default async function MatchesPage() {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -33,8 +36,10 @@ export default async function MatchesPage() {
     .eq("user_id", user?.id ?? "")
     .single();
 
- const isStudent = profile?.role === "student";
-let profileRowId: string | null = null;
+  const isStudent = profile?.role === "student";
+
+  // matches.mentor_id and matches.student_id both reference profiles.id directly
+  const profileId = profile?.id ?? null;
 
   // Fetch next 3 upcoming approved events
   const { data: upcomingEvents } = await supabase
@@ -45,36 +50,23 @@ let profileRowId: string | null = null;
     .order("date", { ascending: true })
     .limit(3);
 
-  // Fetch matches for the current mentor or student profile ID
-  const { data: matches } = profileRowId
+  // Fetch matches using profiles.id — check BOTH columns so manually
+  // created matches work regardless of which column the user is in
+  const { data: matches } = profileId
     ? await supabase
         .from("matches")
-        .select(`
+        .select(
+          `
           *,
           mentor:profiles!matches_mentor_id_fkey(
-            id,
-            name,
-            avatar_url,
-            bio,
-            expertise,
-            idea,
-            problem
+            id, name, avatar_url, bio, expertise
           ),
           student:profiles!matches_student_id_fkey(
-            id,
-            name,
-            avatar_url,
-            bio,
-            expertise,
-            idea,
-            problem
+            id, name, avatar_url, bio, idea, problem
           )
-        `)
-        .or(
-          isStudent
-            ? `student_id.eq.${profileRowId}`
-            : `mentor_id.eq.${profileRowId}`
+        `
         )
+        .or(`student_id.eq.${profileId},mentor_id.eq.${profileId}`)
         .order("score", { ascending: false })
     : { data: [] };
 
@@ -119,16 +111,21 @@ let profileRowId: string | null = null;
         </Card>
       </div>
 
-      {/* Matches lijst */}
+      {/* Matches list */}
       {matches && matches.length > 0 ? (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Your Matches</h2>
+          <h2 className="text-xl font-semibold">
+            {isStudent ? "Your Matches" : "Students Matched With You"}
+          </h2>
           {matches.map((match) => {
-            const otherPerson = isStudent ? match.mentor : match.student;
+            // Determine which side the current user is on (works for manual matches too)
+            const iAmMentor = match.mentor?.id === profileId;
+            const otherPerson = iAmMentor ? match.student : match.mentor;
             const fullName = otherPerson?.name ?? "Unknown";
-            const bio = isStudent
-              ? otherPerson?.bio ?? "No bio yet"
-              : otherPerson?.idea ?? otherPerson?.bio ?? "No bio yet";
+            const bio = iAmMentor
+              ? otherPerson?.idea ?? otherPerson?.bio ?? "No bio yet"
+              : otherPerson?.bio ?? "No bio yet";
+
             const initials = fullName
               .split(" ")
               .map((n: string) => n[0])
@@ -137,9 +134,14 @@ let profileRowId: string | null = null;
               .slice(0, 2);
 
             const expertiseTags: string[] =
-              isStudent && Array.isArray(match.mentor?.expertise)
+              !iAmMentor && Array.isArray(match.mentor?.expertise)
                 ? match.mentor.expertise.slice(0, 3)
                 : [];
+
+            const studentProblem =
+              iAmMentor && match.student?.problem
+                ? match.student.problem
+                : null;
 
             return (
               <Card key={match.id} hover className="flex items-center gap-4">
@@ -150,7 +152,7 @@ let profileRowId: string | null = null;
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold truncate">{fullName}</h3>
                     <Badge
                       variant={
@@ -165,8 +167,18 @@ let profileRowId: string | null = null;
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{bio}</p>
+
+                  {/* Mentor side: show the student's problem */}
+                  {studentProblem && (
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      <span className="font-medium">Problem: </span>
+                      {studentProblem}
+                    </p>
+                  )}
+
+                  {/* Student side: show mentor expertise tags */}
                   {expertiseTags.length > 0 && (
-                    <div className="flex gap-1 mt-1.5">
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
                       {expertiseTags.map((tag: string) => (
                         <span
                           key={tag}
@@ -179,7 +191,7 @@ let profileRowId: string | null = null;
                   )}
                 </div>
 
-                {/* Score + actie */}
+                {/* Score + action */}
                 <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
                   <div>
                     <div className="text-lg font-bold text-gradient">
@@ -188,11 +200,18 @@ let profileRowId: string | null = null;
                     <p className="text-xs text-muted-foreground">match</p>
                   </div>
                   {match.status === "accepted" && (
-                    <Link href={`/dashboard/chat?match=${match.id}`}>
-                      <Button variant="gradient" size="sm">
-                        Chat →
-                      </Button>
-                    </Link>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Link href={`/dashboard/chat?match=${match.id}`}>
+                        <Button variant="gradient" size="sm">
+                          Chat →
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/matches/${match.id}/profile`}>
+                        <Button variant="outline" size="sm">
+                          View Profile
+                        </Button>
+                      </Link>
+                    </div>
                   )}
                 </div>
               </Card>
@@ -200,7 +219,6 @@ let profileRowId: string | null = null;
           })}
         </div>
       ) : (
-        /* Lege staat */
         <Card className="p-12 text-center">
           <div className="text-5xl mb-4">🎯</div>
           <h2 className="text-xl font-semibold mb-2">No matches yet</h2>

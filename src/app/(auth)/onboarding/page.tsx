@@ -7,22 +7,60 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import type { UserRole } from "@/types";
-import { runMatchingForStudent } from '@/lib/matching/matcher'
+import { runMatchingForStudent } from "@/lib/matching/matcher";
 
-const EXPERTISE_OPTIONS = [
-  "Marketing",
-  "Finance",
-  "Legal",
-  "Technology",
-  "Design",
-  "Sales",
-  "Operations",
-  "HR & People",
-  "Product Management",
-  "Data & Analytics",
-  "Branding",
-  "Supply Chain",
+// ── Taxonomy (matches je database) ──────────────────────────
+const CATEGORIES = [
+  { id: 1, name: "Marketing" },
+  { id: 2, name: "Finance" },
+  { id: 3, name: "Technology" },
+  { id: 4, name: "Legal" },
+  { id: 5, name: "Operations" },
+  { id: 6, name: "Product" },
+  { id: 7, name: "Sales" },
+  { id: 8, name: "HR & People" },
 ];
+
+const SUB_SKILLS: Record<number, { id: number; name: string }[]> = {
+  1: [
+    { id: 1, name: "SEO" },
+    { id: 2, name: "Content marketing" },
+    { id: 3, name: "Paid ads" },
+    { id: 4, name: "Brand strategy" },
+  ],
+  2: [
+    { id: 5, name: "Tax law" },
+    { id: 6, name: "Fundraising" },
+    { id: 7, name: "Accounting" },
+    { id: 8, name: "Financial modeling" },
+  ],
+  3: [
+    { id: 10, name: "Mobile development" },
+    { id: 11, name: "AI / ML" },
+    { id: 12, name: "Cloud infrastructure" },
+  ],
+  4: [
+    { id: 14, name: "IP & patents" },
+    { id: 15, name: "GDPR compliance" },
+  ],
+  5: [
+    { id: 16, name: "Supply chain" },
+    { id: 17, name: "Process optimization" },
+  ],
+  6: [
+    { id: 18, name: "Product strategy" },
+    { id: 19, name: "User research" },
+    { id: 20, name: "Roadmapping" },
+  ],
+  7: [
+    { id: 21, name: "B2B sales" },
+    { id: 22, name: "Partnerships" },
+  ],
+  8: [
+    { id: 23, name: "Recruiting" },
+    { id: 24, name: "Team culture" },
+  ],
+};
 
 const AVAILABILITY_OPTIONS = [
   { value: "flexible", label: "Flexible" },
@@ -41,26 +79,27 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Form fields
+  // Basic fields
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [expertise, setExpertise] = useState<string[]>([]);
-  const [idea, setIdea] = useState("");
-  const [problem, setProblem] = useState("");
   const [availability, setAvailability] = useState("flexible");
 
+  // Mentor fields
+  const [mentorExpertise, setMentorExpertise] = useState<string[]>([]);
+
+  // Student fields
+  const [idea, setIdea] = useState("");
+  const [problem, setProblem] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedSubSkillId, setSelectedSubSkillId] = useState<number | null>(null);
+
+  // Steps: mentor = 3, student = 4
   const totalSteps = role === "mentor" ? 3 : 4;
 
   useEffect(() => {
     async function loadProfile() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -72,25 +111,22 @@ export default function OnboardingPage() {
         setRole(profile.role as UserRole);
         if (profile.name) setName(profile.name);
         if (profile.bio) setBio(profile.bio);
-        if (profile.expertise?.length) setExpertise(profile.expertise);
+        if (profile.availability) setAvailability(profile.availability);
         if (profile.idea) setIdea(profile.idea);
         if (profile.problem) setProblem(profile.problem);
-        if (profile.availability) setAvailability(profile.availability);
-
+        if (profile.expertise?.length) setMentorExpertise(profile.expertise);
         if (profile.onboarding_complete) {
           window.location.href = "/dashboard/matches";
           return;
         }
       }
-
       setLoading(false);
     }
-
     loadProfile();
   }, []);
 
-  function toggleExpertise(item: string) {
-    setExpertise((prev) =>
+  function toggleMentorExpertise(item: string) {
+    setMentorExpertise((prev) =>
       prev.includes(item) ? prev.filter((e) => e !== item) : [...prev, item]
     );
   }
@@ -99,21 +135,16 @@ export default function OnboardingPage() {
     setError("");
     setSaving(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
 
-    if (!user) {
-      setSaving(false);
-      return;
-    }
-
-    const { error: updateError, count } = await supabase
+    // 1. Update the main profiles table
+    const { error: updateError } = await supabase
       .from("profiles")
       .update({
         name,
         bio,
-        expertise,
+        expertise: mentorExpertise,
         idea,
         problem,
         availability,
@@ -126,12 +157,46 @@ export default function OnboardingPage() {
       setSaving(false);
       return;
     }
-    if (role === 'student') {
-      await runMatchingForStudent(user.id)
-    }
-        
 
-    // Hard redirect to bypass middleware cache
+    // 2. Fetch the profiles.id (needed for student_profiles and matching)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!profile) {
+      setError("Could not load profile after saving.");
+      setSaving(false);
+      return;
+    }
+
+    if (role === "student") {
+      // 3. Create or update student_profiles row with category/sub_skill IDs
+      const { error: spError } = await supabase
+        .from("student_profiles")
+        .upsert(
+          {
+            profile_id: profile.id,
+            idea_title: idea,
+            idea_desc: "",
+            problem: problem,
+            category_id: selectedCategoryId,
+            sub_skill_id: selectedSubSkillId,
+            context_id: null,
+          },
+          { onConflict: "profile_id" }
+        );
+
+      if (spError) {
+        console.error("student_profiles upsert mislukt:", spError.message);
+        // Non-fatal: ga toch door naar matching
+      }
+
+      // 4. Run matching with the correct profiles.id
+      await runMatchingForStudent(profile.id);
+    }
+
     window.location.href = "/dashboard/matches";
   }
 
@@ -145,7 +210,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-mesh flex flex-col items-center justify-center px-4 py-12">
-      {/* Decorative blobs */}
       <div className="fixed top-10 left-1/4 w-80 h-80 bg-primary/15 rounded-full blur-3xl" />
       <div className="fixed bottom-10 right-1/4 w-72 h-72 bg-secondary/15 rounded-full blur-3xl" />
       <div className="fixed top-1/2 right-10 w-60 h-60 bg-accent/10 rounded-full blur-3xl" />
@@ -166,14 +230,13 @@ export default function OnboardingPage() {
           />
         </div>
 
-        {/* Step 1: Name & Bio */}
+        {/* ── Step 1: Name & Bio ── */}
         {step === 1 && (
           <Card className="p-8">
             <h1 className="text-3xl font-bold mb-2">Tell us about you</h1>
             <p className="text-muted-foreground mb-8">
               Let&apos;s start with the basics so others can get to know you.
             </p>
-
             <div className="space-y-5">
               <Input
                 label="Full Name"
@@ -181,7 +244,6 @@ export default function OnboardingPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-foreground">
                   Short Bio
@@ -202,46 +264,38 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* Step 2: Expertise (both roles) */}
-        {step === 2 && (
+        {/* ── Step 2: Mentor = expertise tags, Student = idea & problem ── */}
+        {step === 2 && role === "mentor" && (
           <Card className="p-8">
-            <h1 className="text-3xl font-bold mb-2">
-              {role === "mentor" ? "Your expertise" : "What area do you need help with?"}
-            </h1>
+            <h1 className="text-3xl font-bold mb-2">Your expertise</h1>
             <p className="text-muted-foreground mb-8">
-              {role === "mentor"
-                ? "Select the fields where you can offer guidance."
-                : "Select the areas related to your problem."}
+              Select the fields where you can offer guidance.
             </p>
-
             <div className="flex flex-wrap gap-2">
-              {EXPERTISE_OPTIONS.map((item) => (
+              {CATEGORIES.map((cat) => (
                 <button
-                  key={item}
+                  key={cat.id}
                   type="button"
-                  onClick={() => toggleExpertise(item)}
+                  onClick={() => toggleMentorExpertise(cat.name)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
-                    expertise.includes(item)
+                    mentorExpertise.includes(cat.name)
                       ? "bg-primary text-white shadow-sm"
                       : "glass hover:bg-white/60"
                   }`}
                 >
-                  {item}
+                  {cat.name}
                 </button>
               ))}
             </div>
           </Card>
         )}
 
-        {/* Step 3 for Student: Idea & Problem */}
-        {step === 3 && role === "student" && (
+        {step === 2 && role === "student" && (
           <Card className="p-8">
             <h1 className="text-3xl font-bold mb-2">Tell us about your vision</h1>
             <p className="text-muted-foreground mb-8">
-              Describe your idea and the problem you&apos;re facing — this helps us
-              find the right mentor for you.
+              Describe your idea and the problem you&apos;re facing.
             </p>
-
             <div className="space-y-5">
               <Input
                 label="Project Name"
@@ -249,7 +303,6 @@ export default function OnboardingPage() {
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
               />
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-foreground">
                   What problem are you facing?
@@ -262,30 +315,85 @@ export default function OnboardingPage() {
                   className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
                 />
               </div>
+            </div>
+          </Card>
+        )}
 
-              {/* Tip card */}
-              <div className="glass rounded-xl p-4 flex gap-3">
-                <div className="text-2xl">💡</div>
-                <div>
-                  <p className="text-sm font-semibold">Need help with your pitch?</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Focus on the &quot;why&quot; of your project. Mentors look for
-                    passion and a clear mission.
-                  </p>
+        {/* ── Step 3: Student = category & sub_skill ── */}
+        {step === 3 && role === "student" && (
+          <Card className="p-8">
+            <h1 className="text-3xl font-bold mb-2">What do you need help with?</h1>
+            <p className="text-muted-foreground mb-6">
+              Pick a topic area, then the specific skill — this is how we find your best mentor match.
+            </p>
+
+            {/* Category picker */}
+            <div className="mb-6">
+              <p className="text-sm font-medium mb-3">Topic area</p>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategoryId(cat.id);
+                      setSelectedSubSkillId(null); // reset sub_skill when category changes
+                    }}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
+                      selectedCategoryId === cat.id
+                        ? "bg-primary text-white shadow-sm"
+                        : "glass hover:bg-white/60"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sub-skill picker — only shown after category is selected */}
+            {selectedCategoryId && (
+              <div>
+                <p className="text-sm font-medium mb-3">Specific skill</p>
+                <div className="flex flex-wrap gap-2">
+                  {(SUB_SKILLS[selectedCategoryId] || []).map((skill) => (
+                    <button
+                      key={skill.id}
+                      type="button"
+                      onClick={() => setSelectedSubSkillId(skill.id)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
+                        selectedSubSkillId === skill.id
+                          ? "bg-secondary text-white shadow-sm"
+                          : "glass hover:bg-white/60"
+                      }`}
+                    >
+                      {skill.name}
+                    </button>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tip */}
+            <div className="glass rounded-xl p-4 flex gap-3 mt-6">
+              <div className="text-2xl">🎯</div>
+              <div>
+                <p className="text-sm font-semibold">Be specific for better matches</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The more specific your skill, the better your mentor match. A tax law problem goes to a tax specialist, not a general lawyer.
+                </p>
               </div>
             </div>
           </Card>
         )}
 
-        {/* Last step: Availability */}
+        {/* ── Last step: Availability ── */}
         {step === totalSteps && (
           <Card className="p-8">
             <h1 className="text-3xl font-bold mb-2">Your availability</h1>
             <p className="text-muted-foreground mb-8">
               When are you typically free for mentoring sessions?
             </p>
-
             <div className="grid grid-cols-2 gap-3">
               {AVAILABILITY_OPTIONS.map((option) => (
                 <button
@@ -302,7 +410,6 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
-
             {error && (
               <div className="text-sm text-error bg-error/10 rounded-xl px-4 py-3 mt-5">
                 {error}
@@ -311,7 +418,7 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* Navigation buttons */}
+        {/* Navigation */}
         <div className="flex items-center justify-between mt-6">
           {step > 1 ? (
             <button
@@ -340,7 +447,6 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        {/* Footer text */}
         <p className="text-center text-xs text-muted-foreground mt-10 uppercase tracking-widest">
           Mentor.me Onboarding Experience
         </p>

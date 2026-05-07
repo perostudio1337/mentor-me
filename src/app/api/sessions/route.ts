@@ -10,19 +10,31 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get profile id for current user
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!myProfile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
     // Fetch sessions for matches where user is mentor or student
+    // mentor_id/student_id reference profiles.id, not auth.uid()
     const { data: sessions, error } = await supabase
       .from('sessions')
       .select(`
         *,
-        matches (
+        matches!inner (
           mentor_id,
           student_id,
           mentor:profiles!matches_mentor_id_fkey (name),
           student:profiles!matches_student_id_fkey (name)
         )
       `)
-      .or(`mentor_id.eq.${user.id},student_id.eq.${user.id}`)
+      .or(`mentor_id.eq.${myProfile.id},student_id.eq.${myProfile.id}`, { referencedTable: 'matches' })
       .order('scheduled_at', { ascending: true });
 
     if (error) {
@@ -52,12 +64,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Get profile id for current user
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!myProfile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
     // Verify the match exists and user is part of it
+    // mentor_id/student_id reference profiles.id, not auth.uid()
     const { data: match, error: matchError } = await supabase
       .from('matches')
       .select('id, status')
       .eq('id', match_id)
-      .or(`mentor_id.eq.${user.id},student_id.eq.${user.id}`)
+      .or(`mentor_id.eq.${myProfile.id},student_id.eq.${myProfile.id}`)
       .single();
 
     if (matchError || !match) {
@@ -75,14 +99,15 @@ export async function POST(request: NextRequest) {
         scheduled_at,
         meeting_link,
         notes,
-        status: 'pending'
+        status: 'pending',
+        created_by: myProfile.id,
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating session:', error);
-      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to create session: ${error.message} (${error.code})` }, { status: 500 });
     }
 
     return NextResponse.json({ session }, { status: 201 });

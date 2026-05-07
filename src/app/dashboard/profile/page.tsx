@@ -381,7 +381,7 @@ export default function ProfilePage() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">📆 My Sessions</h2>
-          <Link href="/dashboard/calendar">
+          <Link href="/dashboard/sessions">
             <Button variant="ghost" size="sm">Full calendar →</Button>
           </Link>
         </div>
@@ -389,7 +389,7 @@ export default function ProfilePage() {
         {sessions.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-sm text-muted-foreground mb-3">No upcoming sessions.</p>
-            <Link href="/dashboard/calendar">
+            <Link href="/dashboard/sessions">
               <Button variant="gradient" size="sm">Book a session</Button>
             </Link>
           </div>
@@ -445,7 +445,7 @@ export default function ProfilePage() {
               );
             })}
             <div className="pt-1">
-              <Link href="/dashboard/calendar">
+              <Link href="/dashboard/sessions">
                 <Button variant="ghost" size="sm" className="w-full">
                   Book a new session
                 </Button>
