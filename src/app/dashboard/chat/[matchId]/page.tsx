@@ -1,3 +1,7 @@
+export default function ChatPage() {
+  return <div className="p-8 text-center">Chat coming soon...</div>
+}
+
 // 'use client'
 
 // import { useEffect, useRef, useState } from 'react'

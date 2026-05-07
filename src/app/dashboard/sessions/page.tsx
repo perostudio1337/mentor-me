@@ -8,6 +8,22 @@ import SessionActions from "./session-actions";
 
 export const dynamic = "force-dynamic";
 
+type SessionRow = {
+  id: string;
+  scheduled_at: string;
+  status: string;
+  meeting_link: string | null;
+  notes: string | null;
+  created_by: string | null;
+  matches: {
+    id: string;
+    mentor_id: string;
+    student_id: string;
+    mentor: { id: string; name: string }[];
+    student: { id: string; name: string }[];
+  }[];
+};
+
 export default async function SessionsPage() {
   const supabase = await createClient();
 
@@ -49,7 +65,7 @@ export default async function SessionsPage() {
         )
         .in("match_id", matchIds)
         .order("scheduled_at", { ascending: true })
-    : { data: [] };
+    : { data: [] as SessionRow[] };
 
   const now = new Date();
 
@@ -66,14 +82,16 @@ export default async function SessionsPage() {
       (s) => new Date(s.scheduled_at) <= now || s.status === "cancelled"
     ) || [];
 
-  function getOtherName(session: (typeof sessions extends (infer T)[] | null ? T : never)) {
+  function getOtherName(session: SessionRow) {
     const match = Array.isArray(session.matches) ? session.matches[0] : session.matches;
     if (!match) return "Unknown";
-    const iAmMentor = match.mentor?.id === profileId;
-    return iAmMentor ? match.student?.name || "Student" : match.mentor?.name || "Mentor";
+    const mentor = Array.isArray(match.mentor) ? match.mentor[0] : match.mentor;
+    const student = Array.isArray(match.student) ? match.student[0] : match.student;
+    const iAmMentor = mentor?.id === profileId;
+    return iAmMentor ? student?.name || "Student" : mentor?.name || "Mentor";
   }
 
-  function getMatchId(session: (typeof sessions extends (infer T)[] | null ? T : never)) {
+  function getMatchId(session: SessionRow) {
     const match = Array.isArray(session.matches) ? session.matches[0] : session.matches;
     return match?.id;
   }

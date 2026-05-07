@@ -18,11 +18,11 @@ interface SessionWithMatch {
   notes: string | null;
   match: {
     id: string;
-    mentor: { name: string };
-    student: { name: string };
+    mentor: { name: string }[];
+    student: { name: string }[];
     mentor_id: string;
     student_id: string;
-  };
+  }[];
 }
 
 const EXPERTISE_OPTIONS = [
@@ -199,9 +199,9 @@ export default function ProfilePage() {
 </Badge>
 <Badge>{availability}</Badge>
 {profile.role === "student" && (
-  <a href="/profile/journey">
-    <Badge variant="default">🗺️ View Journey</Badge>
-  </a>
+  <a href="/dashboard/profile/journey">
+  <Badge variant="default">🗺️ View Journey</Badge>
+</a>
 )}
         </div>
         <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto">
@@ -396,10 +396,13 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-3">
             {sessions.map((session) => {
-              const isMentor = profile?.id === session.match?.mentor_id;
+              const match = Array.isArray(session.match) ? session.match[0] : session.match;
+              const mentor = match?.mentor ? (Array.isArray(match.mentor) ? match.mentor[0] : match.mentor) : null;
+              const student = match?.student ? (Array.isArray(match.student) ? match.student[0] : match.student) : null;
+              const isMentor = profile?.id === match?.mentor_id;
               const partner = isMentor
-                ? session.match?.student?.name
-                : session.match?.mentor?.name;
+                ? student?.name
+                : mentor?.name;
               const label = isMentor ? "Student" : "Mentor";
               const statusColors: Record<string, string> = {
                 pending: "bg-amber-100 text-amber-700",

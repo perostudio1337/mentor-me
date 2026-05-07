@@ -17,6 +17,7 @@ type Notification = {
 
 const typeConfig = {
   session_request: { icon: "📩", color: "text-primary" },
+  session_awaiting: { icon: "⏳", color: "text-amber-500" },
   session_confirmed: { icon: "✅", color: "text-green-600" },
   session_cancelled: { icon: "❌", color: "text-red-500" },
   match_pending: { icon: "🎯", color: "text-primary" },

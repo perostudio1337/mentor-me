@@ -171,6 +171,46 @@ export default function OnboardingPage() {
       return;
     }
 
+    
+    // ★ NIEUW — mentor_profiles + mentor_expertise aanmaken
+    if (role === "mentor") {
+      const { data: existingMp } = await supabase
+        .from("mentor_profiles")
+        .select("id")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+
+      let mentorProfileId: string | null = existingMp?.id ?? null;
+
+      if (!existingMp) {
+        const { data: newMp, error: mpError } = await supabase
+          .from("mentor_profiles")
+          .insert({ profile_id: profile.id, available: true })
+          .select("id")
+          .single();
+
+        if (mpError) {
+          console.error("mentor_profiles insert mislukt:", mpError.message);
+        } else {
+          mentorProfileId = newMp.id;
+        }
+      }
+
+      if (mentorProfileId && mentorExpertise.length > 0) {
+        await supabase
+          .from("mentor_expertise")
+          .delete()
+          .eq("mentor_id", mentorProfileId);
+
+        const expertiseRows = mentorExpertise.map((name) => {
+          const cat = CATEGORIES.find((c) => c.name === name);
+          return { mentor_id: mentorProfileId!, category_id: cat?.id ?? 1 };
+        });
+
+        await supabase.from("mentor_expertise").insert(expertiseRows);
+      }
+    }
+
     if (role === "student") {
       // 3. Create or update student_profiles row with category/sub_skill IDs
       const { error: spError } = await supabase

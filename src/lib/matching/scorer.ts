@@ -10,7 +10,7 @@ import type {
   MentorProfileFull,
   MatchCandidate,
   ScoreBreakdown,
-} from '@/types/database'
+} from '@/types/database.types'
 
 // ------------------------------------------------------------
 // Gewichten (samen altijd 100)

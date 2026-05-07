@@ -50,8 +50,10 @@ export async function GET() {
 
     if (pendingMatches) {
       for (const m of pendingMatches) {
-        const iAmMentor = m.mentor?.id === myProfile.id;
-        const otherName = iAmMentor ? m.student?.name : m.mentor?.name;
+        const mentor = Array.isArray(m.mentor) ? m.mentor[0] : m.mentor;
+        const student = Array.isArray(m.student) ? m.student[0] : m.student;
+        const iAmMentor = mentor?.id === myProfile.id;
+        const otherName = iAmMentor ? student?.name : mentor?.name;
         notifications.push({
           id: `match-${m.id}`,
           type: "match_pending",
@@ -89,10 +91,12 @@ export async function GET() {
         const match = Array.isArray(s.matches) ? s.matches[0] : s.matches;
         if (!match) continue;
 
-        const iAmMentor = match.mentor?.id === myProfile.id;
+        const mentor = Array.isArray(match.mentor) ? match.mentor[0] : match.mentor;
+        const student = Array.isArray(match.student) ? match.student[0] : match.student;
+        const iAmMentor = mentor?.id === myProfile.id;
         const otherName = iAmMentor
-          ? match.student?.name
-          : match.mentor?.name;
+          ? student?.name
+          : mentor?.name;
 
         if (s.status === "pending") {
           const iCreatedThis = s.created_by === myProfile.id;
