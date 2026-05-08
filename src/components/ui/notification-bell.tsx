@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 type Notification = {
   id: string;
-  type: "session_request" | "session_awaiting" | "session_confirmed" | "session_cancelled" | "match_pending";
+  type: "session_request" | "session_awaiting" | "session_confirmed" | "session_cancelled" | "match_pending" | "challenge_completed" | "challenge_step" ;
   title: string;
   message: string;
   timestamp: string;
@@ -21,6 +21,8 @@ const typeConfig = {
   session_confirmed: { icon: "✅", color: "text-green-600" },
   session_cancelled: { icon: "❌", color: "text-red-500" },
   match_pending: { icon: "🎯", color: "text-primary" },
+  challenge_step: { icon: "📈", color: "text-emerald-600" },
+  challenge_completed: { icon: "🏆", color: "text-emerald-600" },
 };
 
 export default function NotificationBell() {

@@ -14,6 +14,11 @@ import { createClient } from '@/lib/supabase/client'
 import ChallengeProgressCard from '@/components/challenges/challenge-progress-card'
 import type { ChallengeEnrollment } from '@/types/challenges'
 import type { Challenge } from '@/types/challenges'
+import type { MilestonePost } from '@/types/feed'
+
+type JournalPost = MilestonePost & {
+  challenge: Challenge | null
+}
 
 type Milestone = {
   id: string
@@ -39,6 +44,7 @@ export default function JourneyPage() {
   const supabase = createClient()
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [enrollments, setEnrollments] = useState<EnrollmentWithChallenge[]>([])
+  const [journalPosts, setJournalPosts] = useState<JournalPost[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -71,6 +77,15 @@ export default function JourneyPage() {
         .order('enrolled_at', { ascending: true })
 
       if (eData) setEnrollments(eData as EnrollmentWithChallenge[])
+
+      // Journal posts — milestone posts the user authored
+      const { data: pData } = await supabase
+        .from('milestone_posts')
+        .select('*, challenge:challenges(*)')
+        .eq('author_id', profile.id)
+        .order('created_at', { ascending: false })
+
+      if (pData) setJournalPosts(pData as JournalPost[])
 
       setLoading(false)
     }
@@ -130,6 +145,67 @@ export default function JourneyPage() {
           enrollments={enrollments}
           isMentorView={false}
         />
+      </div>
+
+      {/* ── Phase 6 — Journal entries (your shared milestones) ── */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">📓 Journal</h2>
+          <span className="text-xs text-gray-400">
+            {journalPosts.length} {journalPosts.length === 1 ? 'entry' : 'entries'}
+          </span>
+        </div>
+
+        {journalPosts.length === 0 ? (
+          <div className="text-center p-8 bg-white rounded-2xl shadow">
+            <div className="text-3xl mb-2">📓</div>
+            <p className="text-sm text-gray-500">
+              Complete a challenge or share an update to start your journal.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {journalPosts.map((p) => (
+              <div
+                key={p.id}
+                className="bg-white rounded-2xl shadow p-4 space-y-2"
+              >
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>
+                    {new Date(p.created_at).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  {p.challenge && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                      style={{
+                        background: 'rgba(16,185,129,0.10)',
+                        color: 'var(--success)',
+                        border: '1px solid rgba(16,185,129,0.25)',
+                      }}
+                    >
+                      <span>{p.challenge.icon}</span>
+                      <span>{p.challenge.title}</span>
+                      <span>✓</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm whitespace-pre-wrap">{p.content}</p>
+                {p.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.image_url}
+                    alt="journal entry"
+                    className="w-full max-h-80 object-cover rounded-xl"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

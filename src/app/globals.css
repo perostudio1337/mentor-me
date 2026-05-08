@@ -105,13 +105,36 @@ body {
   }
 }
 
-/* Glassmorphism card utility */
+/* Glassmorphism card utility (used inside the page body) */
 .glass {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+}
+
+/* Solid top/bottom app bars — high-contrast, opaque, no see-through.
+   Glass looked nice but made the floating header/footer hard to read on
+   busy pages, so chrome elements use this utility instead. */
+.app-bar {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 15, 30, 0.08);
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.06);
+}
+.app-bar--bottom {
+  border-bottom: none;
+  border-top: 1px solid rgba(15, 15, 30, 0.08);
+  box-shadow: 0 -1px 3px rgba(124, 58, 237, 0.06);
+}
+
+/* Hide scrollbars on horizontal scrollers (e.g. bottom nav on narrow screens) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Gradient background */

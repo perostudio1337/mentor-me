@@ -58,7 +58,8 @@ export default function EventForm({
       end_date: endDate ? new Date(endDate).toISOString() : null,
       location: location.trim(),
       link: link.trim(),
-      status: "pending",
+      // Community events publish immediately — no admin approval step.
+      status: "approved",
     });
 
     setLoading(false);
@@ -78,10 +79,9 @@ export default function EventForm({
     return (
       <Card className="p-8 text-center">
         <div className="text-5xl mb-4">🎉</div>
-        <h3 className="text-xl font-bold mb-2">Event submitted!</h3>
+        <h3 className="text-xl font-bold mb-2">Event published!</h3>
         <p className="text-muted-foreground text-sm">
-          Your event is pending review. It will appear on the board once
-          approved.
+          Your event is now live on the community board.
         </p>
       </Card>
     );
@@ -89,9 +89,9 @@ export default function EventForm({
 
   return (
     <Card className="p-6 md:p-8">
-      <h3 className="text-xl font-bold mb-1">Submit an Event</h3>
+      <h3 className="text-xl font-bold mb-1">Post an Event</h3>
       <p className="text-muted-foreground text-sm mb-6">
-        Share an event with the community. It will go live after a quick review.
+        Share an event with the community — it goes live immediately.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -180,7 +180,7 @@ export default function EventForm({
 
         <div className="flex gap-3 pt-2">
           <Button type="submit" variant="gradient" disabled={loading}>
-            {loading ? "Submitting..." : "Submit for Review"}
+            {loading ? "Publishing…" : "Publish Event"}
           </Button>
           {onCancel && (
             <Button type="button" variant="ghost" onClick={onCancel}>

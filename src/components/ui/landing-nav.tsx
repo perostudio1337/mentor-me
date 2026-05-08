@@ -30,7 +30,7 @@ export default function LandingNav() {
   }
 
   return (
-    <nav className="w-full sticky top-0 z-50 glass">
+    <nav className="w-full sticky top-0 z-50 app-bar">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="text-xl font-bold text-gradient">
           Mentor.me

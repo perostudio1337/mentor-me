@@ -54,18 +54,9 @@ export default async function EventsPage() {
     user_has_rsvpd: userRsvps.has(e.id),
   }));
 
-  // Also fetch user's own pending events
-  const { data: myPending } = await supabase
-    .from("events")
-    .select("*")
-    .eq("creator_id", profile.id)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
   return (
     <EventsView
       events={enrichedEvents}
-      myPendingEvents={myPending || []}
       profileId={profile.id}
     />
   );

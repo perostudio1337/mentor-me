@@ -14,6 +14,7 @@ import Card from '@/components/ui/card'
 import Badge from '@/components/ui/badge'
 import Button from '@/components/ui/button'
 import ScrollReveal from '@/components/ui/scroll-reveal'
+import ShareMilestoneModal from '@/components/feed/share-milestone-modal'
 import type {
   Challenge,
   ChallengeEnrollment,
@@ -26,6 +27,7 @@ interface ChallengesViewProps {
   challenges: Challenge[]
   enrollments: ChallengeEnrollment[]
   profileId: string
+  authUserId: string
   isMentor: boolean
 }
 
@@ -33,6 +35,7 @@ export default function ChallengesView({
   challenges,
   enrollments,
   profileId,
+  authUserId,
   isMentor,
 }: ChallengesViewProps) {
   const supabase = createClient()
@@ -42,6 +45,12 @@ export default function ChallengesView({
     useState<ChallengeEnrollment[]>(enrollments)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [topicFilter, setTopicFilter] = useState<ChallengeTopic | 'all'>('all')
+
+  // Milestone-share modal state
+  const [shareTarget, setShareTarget] = useState<{
+    challenge: Challenge
+    enrollment: ChallengeEnrollment
+  } | null>(null)
 
   // ── Merge catalogue with enrolment data ─────────────────────
   const items: ChallengeWithProgress[] = useMemo(() => {
@@ -85,23 +94,61 @@ export default function ChallengesView({
     setBusyId(null)
   }
 
-  // ── Simulate advancing one step (demo interaction) ───────────
+  // ── Advance one step. If the step pushes us to the end, mark
+  //    the enrolment as completed and open the milestone share modal.
   async function handleAdvanceStep(item: ChallengeWithProgress) {
     if (!item.enrollment) return
     const newDone = Math.min(item.enrollment.steps_done + 1, item.total_steps)
+    const reachedEnd = newDone >= item.total_steps
+    const wasAlreadyComplete = item.enrollment.completed_at != null
     setBusyId(item.id)
+
+    const update: Record<string, unknown> = { steps_done: newDone }
+    if (reachedEnd && !wasAlreadyComplete) {
+      update.completed_at = new Date().toISOString()
+    }
 
     const { data, error } = await supabase
       .from('challenge_enrollments')
-      .update({ steps_done: newDone })
+      .update(update)
       .eq('id', item.enrollment.id)
       .select()
       .single()
 
     if (!error && data) {
+      const updated = data as ChallengeEnrollment
       setLocalEnrollments((prev) =>
-        prev.map((e) => (e.id === item.enrollment!.id ? (data as ChallengeEnrollment) : e))
+        prev.map((e) => (e.id === item.enrollment!.id ? updated : e))
       )
+      if (reachedEnd && !wasAlreadyComplete) {
+        setShareTarget({ challenge: item, enrollment: updated })
+      }
+    }
+    setBusyId(null)
+  }
+
+  // ── Tick the whole challenge as complete (one-click). ───────
+  async function handleMarkComplete(item: ChallengeWithProgress) {
+    if (!item.enrollment) return
+    if (item.enrollment.completed_at) return
+    setBusyId(item.id)
+
+    const { data, error } = await supabase
+      .from('challenge_enrollments')
+      .update({
+        steps_done: item.total_steps,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', item.enrollment.id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      const updated = data as ChallengeEnrollment
+      setLocalEnrollments((prev) =>
+        prev.map((e) => (e.id === item.enrollment!.id ? updated : e))
+      )
+      setShareTarget({ challenge: item, enrollment: updated })
     }
     setBusyId(null)
   }
@@ -174,6 +221,7 @@ export default function ChallengesView({
               busy={busyId === item.id}
               onJoin={() => handleJoin(item.id)}
               onAdvance={() => handleAdvanceStep(item)}
+              onMarkComplete={() => handleMarkComplete(item)}
             />
           </ScrollReveal>
         ))}
@@ -184,6 +232,18 @@ export default function ChallengesView({
           <div className="text-5xl mb-4">🔍</div>
           <p className="text-muted-foreground text-sm">No challenges in this topic yet.</p>
         </Card>
+      )}
+
+      {/* ── Share Milestone modal ── */}
+      {shareTarget && (
+        <ShareMilestoneModal
+          open={!!shareTarget}
+          profileId={profileId}
+          authUserId={authUserId}
+          challenge={shareTarget.challenge}
+          enrollment={shareTarget.enrollment}
+          onClose={() => setShareTarget(null)}
+        />
       )}
 
       {/* ── Completed ── */}
@@ -222,12 +282,14 @@ function ChallengeCard({
   busy,
   onJoin,
   onAdvance,
+  onMarkComplete,
 }: {
   item: ChallengeWithProgress
   isMentor: boolean
   busy: boolean
   onJoin: () => void
   onAdvance: () => void
+  onMarkComplete: () => void
 }) {
   return (
     <Card className="p-5 flex flex-col gap-3 h-full">
@@ -255,19 +317,35 @@ function ChallengeCard({
 
       {/* CTA — hidden for mentors */}
       {!isMentor && (
-        <div className="mt-auto pt-1">
+        <div className="mt-auto pt-1 flex flex-wrap gap-2 items-center">
           {item.is_completed ? (
             <span className="text-xs font-medium text-success">✓ Completed</span>
           ) : item.is_enrolled ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAdvance}
-              // @ts-ignore
-              disabled={busy}
-            >
-              {busy ? 'Saving…' : `Continue → Step ${(item.enrollment?.steps_done ?? 0) + 1}/${item.total_steps}`}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAdvance}
+                // @ts-ignore
+                disabled={busy}
+              >
+                {busy ? 'Saving…' : `Continue → Step ${(item.enrollment?.steps_done ?? 0) + 1}/${item.total_steps}`}
+              </Button>
+              <button
+                type="button"
+                onClick={onMarkComplete}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-full transition cursor-pointer disabled:opacity-50"
+                style={{
+                  background: 'rgba(16,185,129,0.10)',
+                  color: 'var(--success)',
+                  border: '1px solid rgba(16,185,129,0.25)',
+                }}
+                title="Tick this challenge as complete and share your win"
+              >
+                <span className="text-base leading-none">✓</span> Mark complete
+              </button>
+            </>
           ) : (
             <Button
               variant="gradient"

@@ -53,7 +53,7 @@ Help users navigate and get the most out of the Mentor.me platform. You are frie
 
 - After matching, users can chat in real time and schedule sessions via a shared calendar
 
-- Networking events can be added by any user but must be verified by an admin before going live
+- Networking events can be posted by any user and go live immediately on the community board
 
 - The platform enforces respectful communication — inappropriate language is not allowed
 

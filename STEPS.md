@@ -1,7 +1,6 @@
 # Mentor.me — Development Steps
 
 > This file tracks our step-by-step progress building the Mentor.me MVP.
-> Each step will be reviewed before moving to the next.
 > Status: [ ] = not started, [~] = in progress, [x] = done
 
 ---
@@ -12,96 +11,118 @@
 - [x] **Step 0.3** — Set up Supabase project (database, auth, environment variables)
 - [x] **Step 0.4** — Create base UI components (Button, Card, Input, Avatar, Badge)
 - [x] **Step 0.5** — Build the landing page (hero, features, CTA)
-- [x] **Step 0.6** — Redesign landing page to glassmorphism style (matching uploaded designs)
+- [x] **Step 0.6** — Redesign landing page to glassmorphism style
 
 ## Phase 1: Authentication & Profiles
-- [x] **Step 1.1** — Implement registration flow (email + role selection: mentor or student)
-- [x] **Step 1.2** — Implement login / logout with Supabase Auth
-- [x] **Step 1.3** — Build profile setup wizard (multi-step onboarding)
-- [x] **Step 1.4** — Create database tables: `profiles` (SQL run in Supabase)
+- [x] **Step 1.1** — Registration flow (email + role selection)
+- [x] **Step 1.2** — Login / logout with Supabase Auth
+- [x] **Step 1.3** — Profile setup wizard (multi-step onboarding)
+- [x] **Step 1.4** — `profiles` table with RLS + auto-create trigger
 - [x] **Step 1.5** — Profile view and edit page
 - [x] **Step 1.6** — Auth middleware (route protection, onboarding enforcement)
-- [x] **Step 1.7** — Auth-aware landing page nav (shows account when logged in)
-- [x] **Step 1.8** — Admin role added to profiles (role constraint updated)
-- [~] **Step 1.9** — Fix onboarding save redirect & rename (dashboard) folder *(in progress)*
+- [x] **Step 1.7** — Auth-aware landing page nav
+- [x] **Step 1.8** — Onboarding redirect fix + dashboard skeleton
 
 ## Phase 2: Matching System
-- [ ] **Step 2.1** — Design the matching algorithm (weighted scoring: problem context > expertise)
-- [x] **Step 2.2** — Create database tables: `matches` (SQL ready, needs to be run)
-- [ ] **Step 2.3** — Build match suggestions page (list of matches with % score and reasoning)
-- [ ] **Step 2.4** — Accept / decline match flow
-- [ ] **Step 2.5** — "Match Reveal" UI with playful animations
+- [x] **Step 2.1** — Matching algorithm (problem-context > expertise weighting)
+- [x] **Step 2.2** — `matches` table + RLS policies + indexes
+- [x] **Step 2.3** — Match suggestions page (% score + reasoning)
+- [x] **Step 2.4** — Accept / decline match flow
+- [x] **Step 2.5** — Match Reveal screen (subtle animations)
+- [x] **Step 2.6** — Manual match request flow (`/dashboard/matches/request/[profileId]`)
 
 ## Phase 3: Chat System
-- [ ] **Step 3.1** — Create database tables: `messages`
-- [ ] **Step 3.2** — Build real-time chat interface (WhatsApp-style)
-- [ ] **Step 3.3** — Supabase Realtime subscriptions for live message delivery
-- [ ] **Step 3.4** — Read receipts and online status indicators
-- [ ] **Step 3.5** — Content moderation (Perspective API integration)
+- [x] **Step 3.1** — `messages` table with RLS
+- [x] **Step 3.2** — Chat interface (WhatsApp-style) at `/dashboard/chat`
+- [x] **Step 3.3** — Supabase Realtime subscriptions for live messages
+- [x] **Step 3.4** — Read receipts (`markAsRead`)
+- [x] **Step 3.5** — Content moderation hook (`moderateMessage`) — Perspective API ready
+- [x] **Step 3.6** — Site-wide AI chat widget (`ChatWidget` powered by Gemini)
 
 ## Phase 4: Events Board
-- [ ] **Step 4.1** — Create database tables: `events`
-- [ ] **Step 4.2** — Event creation form (title, description, date, location)
-- [ ] **Step 4.3** — Event listing page with search/filter
-- [ ] **Step 4.4** — Admin verification workflow (pending → approved / rejected)
+- [x] **Step 4.1** — `events` table + `event_rsvps` table
+- [x] **Step 4.2** — Event creation form (`event-form.tsx`)
+- [x] **Step 4.3** — Events page with search, category and time filters
+- [x] **Step 4.4** — External events feed (`/api/events/external` via SerpAPI)
+- [x] **Step 4.5** — RSVP support
+- [x] **Step 4.6** — Auto-publish community events (no admin moderation step)
 
 ## Phase 5: Session Scheduling
-- [ ] **Step 5.1** — Create database tables: `sessions`
-- [ ] **Step 5.2** — Shared calendar view between matched mentor & student
-- [ ] **Step 5.3** — Book a session flow (date/time picker, confirmation)
-- [ ] **Step 5.4** — Email/notification reminders for upcoming sessions
+- [x] **Step 5.1** — `sessions` table
+- [x] **Step 5.2** — Shared calendar view (`/dashboard/calendar`)
+- [x] **Step 5.3** — Book-a-session flow (`book-session-form`)
+- [x] **Step 5.4** — Sessions list with status pills (scheduled / completed / cancelled)
+- [x] **Step 5.5** — Notification bell + `/api/notifications`
+- [x] **Step 5.6** — Startup journey + challenge progress (milestones, goals, challenge enrolments)
 
-## Phase 6: Admin Panel
-- [ ] **Step 6.1** — Admin dashboard (overview of users, matches, events)
-- [ ] **Step 6.2** — User management (view, deactivate accounts)
-- [ ] **Step 6.3** — Event approval queue
-- [ ] **Step 6.4** — Match oversight and intervention tools
+## Phase 6: Milestone Feed & Journal
+- [x] **Step 6.1** — Migration `013_milestone_posts.sql` (posts, likes, comments, storage bucket)
+- [x] **Step 6.2** — `share-milestone-modal` component (text + image + attached challenge)
+- [x] **Step 6.3** — Auto-open the modal on challenge completion (one-click "Mark complete")
+- [x] **Step 6.4** — `/dashboard/feed` community feed with likes & comments
+- [x] **Step 6.5** — Journal section on `/dashboard/profile/journey` listing the user's posts
+- [x] **Step 6.6** — Feed + Challenges added to bottom nav
+- [ ] **Step 6.7** — Run `013_milestone_posts.sql` in Supabase SQL Editor
+- [ ] **Step 6.8** — Run `014_events_auto_approve.sql` in Supabase SQL Editor
+- [ ] **Step 6.9** — Verify the `post-images` storage bucket exists and is public
 
 ## Phase 7: Polish & Launch Prep
-- [ ] **Step 7.1** — Responsive design pass (mobile, tablet, desktop)
-- [ ] **Step 7.2** — Error handling and loading states throughout
-- [ ] **Step 7.3** — GDPR compliance (privacy policy, data deletion, cookie consent)
-- [ ] **Step 7.4** — Performance optimization (lazy loading, image optimization)
-- [ ] **Step 7.5** — End-to-end testing of all core flows
-- [ ] **Step 7.6** — Deploy to Vercel
+- [x] **Step 7.1** — Replace transparent header/footer with solid `app-bar` for legibility
+- [ ] **Step 7.2** — Responsive design pass (mobile, tablet, desktop)
+- [ ] **Step 7.3** — Error handling and loading states throughout
+- [ ] **Step 7.4** — GDPR compliance (privacy policy, data deletion, cookie consent)
+- [ ] **Step 7.5** — Performance optimization (lazy loading, image optimization)
+- [ ] **Step 7.6** — End-to-end testing of all core flows
+- [ ] **Step 7.7** — Deploy to Vercel
 
 ---
 
 ## Progress Log
 
-| Date | Step | What was done |
-|------|------|---------------|
-| 2026-05-06 | 0.1 | Initialized Next.js project with TypeScript, Tailwind, App Router |
-| 2026-05-06 | 0.2 | Created folder structure, types, Supabase clients, utils, design tokens, installed @supabase/ssr |
-| 2026-05-06 | 0.3 | Supabase project created, .env.local configured with project URL and anon key |
-| 2026-05-06 | 0.4 | Built base UI components: Button, Card, Input, Avatar, Badge |
-| 2026-05-06 | 0.5 | Built landing page with hero, how-it-works, features, CTA, nav & footer |
-| 2026-05-06 | 0.6 | Redesigned landing page to glassmorphism style matching uploaded designs |
-| 2026-05-06 | 1.1 | Registration page with role selection (mentor/student), email & password |
-| 2026-05-06 | 1.2 | Login page, logout functionality |
-| 2026-05-06 | 1.3 | Multi-step onboarding wizard (name, bio, expertise, idea/problem, availability) |
-| 2026-05-06 | 1.4 | Profiles table created in Supabase with RLS policies & auto-create trigger |
-| 2026-05-06 | 1.5 | Profile view & edit page with all fields editable |
-| 2026-05-06 | 1.6 | Auth middleware: protects /dashboard/*, redirects logged-in users from /login, enforces onboarding |
-| 2026-05-06 | 1.7 | Landing page nav now shows "My Dashboard" + "Sign out" when logged in |
-| 2026-05-06 | 1.8 | Admin role added to profiles table constraint, Robert set as admin |
-| 2026-05-06 | 1.9 | Fixed onboarding save (hard redirect), dashboard matches page with welcome + stats |
-| 2026-05-06 | 2.2 | 002_matches.sql migration created with RLS policies and indexes |
+| Date       | Step | What was done |
+|------------|------|---------------|
+| 2026-05-06 | 0.1  | Initialized Next.js project with TypeScript, Tailwind, App Router |
+| 2026-05-06 | 0.2  | Folder structure, types, Supabase clients, utils, design tokens; installed `@supabase/ssr` |
+| 2026-05-06 | 0.3  | Supabase project created, `.env.local` configured |
+| 2026-05-06 | 0.4  | Built base UI components: Button, Card, Input, Avatar, Badge |
+| 2026-05-06 | 0.5  | Built landing page (hero, how-it-works, features, CTA, nav, footer) |
+| 2026-05-06 | 0.6  | Glassmorphism redesign of landing page |
+| 2026-05-06 | 1.1  | Registration page with role selection |
+| 2026-05-06 | 1.2  | Login + logout |
+| 2026-05-06 | 1.3  | Multi-step onboarding wizard |
+| 2026-05-06 | 1.4  | `profiles` table, RLS, auto-create trigger |
+| 2026-05-06 | 1.5  | Profile view & edit |
+| 2026-05-06 | 1.6  | Auth middleware (route protection, onboarding gate) |
+| 2026-05-06 | 1.7  | Landing nav adapts to auth state |
+| 2026-05-06 | 1.8  | Onboarding hard redirect; dashboard matches page with welcome + stats |
+| 2026-05-06 | 2.2  | `002_matches.sql` migration with RLS + indexes |
+| 2026-05-07 | 2.x  | Matching algorithm + match request + accept/decline flow live |
+| 2026-05-07 | 3.x  | Chat interface, Realtime, content-moderation hook, AI ChatWidget |
+| 2026-05-07 | 4.x  | Events board (categories, RSVPs, external events, search/filter) |
+| 2026-05-07 | 5.x  | Sessions, calendar, journey/journal, challenges (Phase 5.6) |
+| 2026-05-08 | 6.1  | `013_milestone_posts.sql` — posts/likes/comments + storage bucket |
+| 2026-05-08 | 6.2  | `ShareMilestoneModal` (text + image upload + challenge chip) |
+| 2026-05-08 | 6.3  | Challenge "Mark complete" tick triggers the share modal |
+| 2026-05-08 | 6.4  | `/dashboard/feed` community feed with likes + comments |
+| 2026-05-08 | 6.5  | Journal entries on `/dashboard/profile/journey` |
+| 2026-05-08 | 6.6  | Bottom nav widened to 6 items: Discover, Feed, Challenges, Chat, Events, Profile |
+| 2026-05-08 | 4.6  | `014_events_auto_approve.sql` — community events go live immediately, no admin needed |
+| 2026-05-08 | 7.1  | Header & bottom nav switched from `glass` to opaque `app-bar` for readability |
+| 2026-05-08 | —    | Removed planned Admin Panel phase (out of MVP scope) |
 
 ---
 
 ## Known Issues / TODO
 
-- [ ] Rename `(dashboard)` folder to `dashboard` in VS Code (remove parentheses)
-- [ ] Run `002_matches.sql` in Supabase SQL Editor
+- [ ] Run `013_milestone_posts.sql` in Supabase SQL Editor (creates feed tables + storage bucket)
+- [ ] Run `014_events_auto_approve.sql` in Supabase SQL Editor (publishes existing pending events)
 - [ ] Disable "Confirm email" in Supabase Auth → Providers → Email
+- [ ] If you see `getaddrinfo ENOTFOUND rgljnrypdolbwagrvlbc.supabase.co`, see [SUPABASE_DNS_FIX.md](SUPABASE_DNS_FIX.md)
 
 ---
 
 ## Notes
 
-- We build one step at a time. Each step gets reviewed before we proceed.
-- The STEPS.md file will be updated as we go — steps may be added, split, or reordered.
-- Tech stack: Next.js + TypeScript + Tailwind CSS + Supabase
+- The original Phase 6 was an Admin Panel. We dropped it: events now auto-publish, and content moderation is community-driven (Perspective API on chat, future "report" buttons on posts).
+- Tech stack: Next.js 16 + TypeScript (strict) + Tailwind v4 + Supabase + Gemini API.
 - Priority order follows the Canvas 3 "Must Have" requirements.
-- Robert's account (r.pervushen@gmail.com) is set as admin role.

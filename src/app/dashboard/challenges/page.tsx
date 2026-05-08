@@ -1,23 +1,16 @@
-
-
 /**
  * src/app/dashboard/challenges/page.tsx
- *
- * Discovery tab for Challenges.
- * – Startups browse the catalogue and can Join / Continue / View challenges.
- * – Mentor accounts see a read-only catalogue (they cannot enrol).
- * – Uses the same Supabase client + profile_id pattern as
- *   src/app/dashboard/profile/journey/page.tsx
  */
 
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import ChallengesView from './challenges-view'
 import type { Challenge, ChallengeEnrollment } from '@/types/challenges'
 
-export default async function ChallengesPage() {
-  const supabase = createClient()
+export const dynamic = 'force-dynamic'
 
-  // ── Auth & profile ──────────────────────────────────────────
+export default async function ChallengesPage() {
+  const supabase = await createClient()
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -29,13 +22,11 @@ export default async function ChallengesPage() {
 
   if (!profile) return null
 
-  // ── Fetch catalogue ─────────────────────────────────────────
   const { data: challenges } = await supabase
     .from('challenges')
     .select('*')
     .order('sort_order', { ascending: true })
 
-  // ── Fetch enrolments (students only) ────────────────────────
   let enrollments: ChallengeEnrollment[] = []
   if (profile.role === 'student') {
     const { data } = await supabase
@@ -50,6 +41,7 @@ export default async function ChallengesPage() {
       challenges={(challenges ?? []) as Challenge[]}
       enrollments={enrollments}
       profileId={profile.id}
+      authUserId={user.id}
       isMentor={profile.role === 'mentor'}
     />
   )

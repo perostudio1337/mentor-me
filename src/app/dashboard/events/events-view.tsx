@@ -14,13 +14,11 @@ import ScrollReveal from "@/components/ui/scroll-reveal";
 
 interface EventsViewProps {
   events: MentorEvent[];
-  myPendingEvents: MentorEvent[];
   profileId: string;
 }
 
 export default function EventsView({
   events,
-  myPendingEvents,
   profileId,
 }: EventsViewProps) {
   const router = useRouter();
@@ -99,7 +97,7 @@ export default function EventsView({
           </p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Close" : "+ Submit Event"}
+          {showForm ? "Close" : "+ Post Event"}
         </Button>
       </div>
 
@@ -115,27 +113,6 @@ export default function EventsView({
             onCancel={() => setShowForm(false)}
           />
         </div>
-      )}
-
-      {/* Pending events banner */}
-      {myPendingEvents.length > 0 && (
-        <Card className="mb-6 p-4">
-          <p className="text-sm font-medium mb-2">
-            ⏳ You have {myPendingEvents.length} event
-            {myPendingEvents.length > 1 ? "s" : ""} pending review:
-          </p>
-          <div className="space-y-1">
-            {myPendingEvents.map((e) => (
-              <div
-                key={e.id}
-                className="flex items-center gap-2 text-sm text-muted-foreground"
-              >
-                <Badge variant="warning">Pending</Badge>
-                <span>{e.title}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
       )}
 
       {/* Filters */}

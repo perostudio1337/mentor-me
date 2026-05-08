@@ -26,7 +26,7 @@ export async function GET() {
 
     const notifications: {
       id: string;
-      type: "session_request" | "session_awaiting" | "session_confirmed" | "session_cancelled" | "match_pending";
+      type: "session_request" | "session_awaiting" | "session_confirmed" | "session_cancelled" | "match_pending" | "challenge_step" | "challenge_completed";
       title: string;
       message: string;
       timestamp: string;
@@ -139,6 +139,64 @@ export async function GET() {
               timestamp: s.created_at,
               matchId: match.id,
             });
+          }
+        }
+      }
+    }
+
+    // 3. Challenge progress notifications (only for mentors)
+   if (myProfile.role === "mentor") {
+      // Find all accepted matches where I am the mentor
+      const { data: myMatches } = await supabase
+        .from("matches")
+        .select("id, student_id, student:profiles!matches_student_id_fkey(id, name)")
+        .eq("mentor_id", myProfile.id)
+        .eq("status", "accepted");
+
+      if (myMatches) {
+        for (const match of myMatches) {
+          const student = Array.isArray(match.student) ? match.student[0] : match.student;
+
+          // Fetch recent enrollment updates for this student (last 7 days)
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+
+          const { data: enrollments } = await supabase
+            .from("challenge_enrollments")
+            .select("*, challenge:challenges(title, icon, total_steps)")
+            .eq("profile_id", match.student_id)
+            .gt("updated_at", weekAgo.toISOString())
+            .order("updated_at", { ascending: false });
+
+          if (enrollments) {
+            for (const e of enrollments) {
+              const challenge = Array.isArray(e.challenge) ? e.challenge[0] : e.challenge;
+              if (!challenge) continue;
+
+              if (e.completed_at && new Date(e.completed_at) > weekAgo) {
+                // Challenge completed
+                notifications.push({
+                  id: `challenge-completed-${e.id}`,
+                  type: "challenge_completed",
+                  title: "Challenge completed! 🏆",
+                  message: `${student?.name || "Your startup"} completed "${challenge.icon} ${challenge.title}"`,
+                  timestamp: e.completed_at,
+                  actionUrl: `/dashboard/matches/${match.id}/profile`,
+                  matchId: match.id,
+                });
+              } else if (e.steps_done > 0) {
+                // Step advanced
+                notifications.push({
+                  id: `challenge-step-${e.id}-${e.steps_done}`,
+                  type: "challenge_step",
+                  title: "Challenge progress",
+                  message: `${student?.name || "Your startup"} is at step ${e.steps_done}/${challenge.total_steps} of "${challenge.icon} ${challenge.title}"`,
+                  timestamp: e.updated_at,
+                  actionUrl: `/dashboard/matches/${match.id}/profile`,
+                  matchId: match.id,
+                });
+              }
+            }
           }
         }
       }
